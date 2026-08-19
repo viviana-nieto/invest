@@ -1,0 +1,24 @@
+#!/bin/bash
+# Pre-commit hook: block commits that contain PII / secrets.
+#
+# Install in a skill repo:
+#   cp <release-kit>/templates/pre-commit .githooks/pre-commit
+#   chmod +x .githooks/pre-commit
+#   git config core.hooksPath .githooks
+# Skip once (use sparingly): git commit --no-verify
+#
+# Runs the release kit's scanner over the repo. Set RELEASE_KIT to the kit path
+# and (optionally) DENYLIST to your private Tier B denylist.
+
+set -e
+
+RELEASE_KIT="${RELEASE_KIT:-$HOME/Documents/Claude/projects/claude-skill-release-kit}"
+DENYLIST_ARG=""
+[ -n "$DENYLIST" ] && DENYLIST_ARG="--denylist $DENYLIST"
+
+if [ ! -d "$RELEASE_KIT/pii_guard" ]; then
+    echo "pre-commit: release kit not found at $RELEASE_KIT (set RELEASE_KIT). Skipping guard." >&2
+    exit 0
+fi
+
+PYTHONPATH="$RELEASE_KIT" python3 -m pii_guard.guard --repo "$(git rev-parse --show-toplevel)" $DENYLIST_ARG

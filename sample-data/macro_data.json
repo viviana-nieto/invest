@@ -1,0 +1,74 @@
+{
+  "generated": "sample",
+  "fed_policy": {
+    "target_rate": "4.25\u20134.50%",
+    "stance": "Neutral / data-dependent",
+    "last_move": "Hold",
+    "next_meeting": "sample",
+    "note": "Sample values \u2014 illustrative only, not a live feed."
+  },
+  "inflation": {
+    "cpi_yoy": 0.031,
+    "core_cpi_yoy": 0.033,
+    "pce_yoy": 0.026,
+    "trend": "cooling"
+  },
+  "labor": {
+    "unemployment": 0.041,
+    "nonfarm_payrolls_k": 165,
+    "wage_growth_yoy": 0.039,
+    "trend": "steady"
+  },
+  "market_indicators": [
+    {
+      "name": "10Y Treasury",
+      "value": "4.18%",
+      "change": -0.04
+    },
+    {
+      "name": "2Y Treasury",
+      "value": "3.92%",
+      "change": -0.02
+    },
+    {
+      "name": "VIX",
+      "value": "15.6",
+      "change": -0.8
+    },
+    {
+      "name": "US Dollar Index",
+      "value": "103.2",
+      "change": 0.3
+    },
+    {
+      "name": "WTI Crude",
+      "value": "$74.10",
+      "change": 1.1
+    },
+    {
+      "name": "Gold",
+      "value": "$2,640",
+      "change": 0.6
+    }
+  ],
+  "news": [
+    {
+      "headline": "Sample: Fed holds rates, signals patience on cuts",
+      "source": "Sample Wire",
+      "sentiment": "neutral",
+      "summary": "Placeholder macro headline demonstrating the Macro tab card layout."
+    },
+    {
+      "headline": "Sample: Inflation cools for a third straight month",
+      "source": "Sample Wire",
+      "sentiment": "positive",
+      "summary": "Placeholder macro headline \u2014 cooling CPI supports a soft-landing narrative."
+    },
+    {
+      "headline": "Sample: Labor market steady as payrolls come in near estimate",
+      "source": "Sample Wire",
+      "sentiment": "neutral",
+      "summary": "Placeholder macro headline \u2014 jobs report broadly in line with expectations."
+    }
+  ]
+}

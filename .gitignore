@@ -1,0 +1,16 @@
+# Local, user-specific config (never commit real watchlists / keys)
+config.json
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.venv/
+venv/
+
+# Legacy rendered card view (index.html + data.js are committed source/sample)
+core/dashboard/cards.html
+
+# OS
+.DS_Store

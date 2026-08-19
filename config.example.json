@@ -1,0 +1,26 @@
+{
+  "_comment": "Copy to config.json and edit. config.json is gitignored. Fundamentals below are ILLUSTRATIVE SAMPLE VALUES so the engine runs offline without live data — they are not current and are not investment advice. `fcf`, `shape`, and `narrative` power the decision + timing lenses of the dashboard. `narrative` is a CANNED sample standing in for the LLM 'agent voice' — the deterministic engine makes every call; the narrative only reads it back.",
+  "llm": {
+    "provider": "mock",
+    "_providers": ["anthropic", "openai", "ollama", "mock"],
+    "model": null
+  },
+  "skill": {
+    "_note": "Global valuation assumptions + a neutral mega-cap watchlist.",
+    "projection_years": 10,
+    "required_return": 0.15,
+    "margin_of_safety": 0.50,
+    "default_future_pe": 15.0,
+    "watchlist": [
+      { "ticker": "AAPL",  "name": "Apple Inc.",            "sector": "Technology",             "price": 230.0, "eps": 6.50,  "growth_rate": 0.10, "future_pe": 20.0, "fcf": "positive", "shape": "extended", "narrative": "Agents read a fortress balance sheet, but at 15y payback the price already banks a decade of flawless execution — nothing on sale here." },
+      { "ticker": "MSFT",  "name": "Microsoft Corp.",        "sector": "Technology",             "price": 420.0, "eps": 11.80, "growth_rate": 0.14, "future_pe": 28.0, "fcf": "positive", "shape": "extended", "narrative": "Cloud and Copilot keep cash flow compounding, yet the multiple leaves no margin of safety — a great business at a full price." },
+      { "ticker": "NVDA",  "name": "NVIDIA Corp.",           "sector": "Semiconductors",         "price": 120.0, "eps": 2.50,  "growth_rate": 0.30, "future_pe": 35.0, "fcf": "positive", "shape": "floor",    "narrative": "Agents flag accelerating datacenter demand; the discount to sticker reads as the market pricing a cyclical pause, not a broken thesis." },
+      { "ticker": "AMZN",  "name": "Amazon.com Inc.",        "sector": "Consumer Discretionary", "price": 180.0, "eps": 4.50,  "growth_rate": 0.20, "future_pe": 30.0, "fcf": "positive", "shape": "floor",    "narrative": "Retail margin recovery plus cloud reacceleration give the cash story room, and price sits just under fair value with a short payback." },
+      { "ticker": "GOOGL", "name": "Alphabet Inc.",          "sector": "Communication Services", "price": 175.0, "eps": 7.50,  "growth_rate": 0.15, "future_pe": 22.0, "fcf": "positive", "shape": "neutral",  "narrative": "Search cash flow is intact and payback is reasonable, but price sits a hair above sticker — one good pullback from a buy." },
+      { "ticker": "JPM",   "name": "JPMorgan Chase & Co.",   "sector": "Financials",             "price": 205.0, "eps": 16.00, "growth_rate": 0.08, "future_pe": 12.0, "fcf": "positive", "shape": "neutral",  "narrative": "Earnings power is real and payback is short, yet the rich price versus a conservative sticker keeps this on the bench." },
+      { "ticker": "XOM",   "name": "Exxon Mobil Corp.",      "sector": "Energy",                 "price": 115.0, "eps": 8.00,  "growth_rate": 0.05, "future_pe": 11.0, "fcf": "positive", "shape": "extended", "narrative": "Cash returns are healthy, but low modeled growth pushes sticker far below price — the cushion just is not there today." },
+      { "ticker": "JNJ",   "name": "Johnson & Johnson",       "sector": "Health Care",            "price": 160.0, "eps": 9.50,  "growth_rate": 0.06, "future_pe": 15.0, "fcf": "positive", "shape": "neutral",  "narrative": "Defensive cash flow and a decent payback, but slow growth leaves the price above a prudent fair value estimate." },
+      { "ticker": "WMT",   "name": "Walmart Inc.",           "sector": "Consumer Staples",       "price": 70.0,  "eps": 2.40,  "growth_rate": 0.09, "future_pe": 25.0, "fcf": "positive", "shape": "neutral",  "narrative": "Steady defensive compounder, but a 14y payback says the market is paying up for that stability — not cheap enough." }
+    ]
+  }
+}

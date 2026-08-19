@@ -1,0 +1,21 @@
+{
+  "type": "object",
+  "required": ["date", "items"],
+  "properties": {
+    "date": { "type": "string" },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["ticker", "headline", "sentiment"],
+        "properties": {
+          "ticker": { "type": "string" },
+          "headline": { "type": "string" },
+          "summary": { "type": "string" },
+          "sentiment": { "type": "string" },
+          "sources": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    }
+  }
+}

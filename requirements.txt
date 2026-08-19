@@ -1,0 +1,4 @@
+scipy>=1.10
+numpy>=1.24
+yfinance>=0.2
+pytest>=7.0
