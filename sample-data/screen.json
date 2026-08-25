@@ -1,122 +1,76 @@
 {
   "generated": "sample",
   "criteria": {
-    "dip_max": 0.34,
-    "pbt_cut": 12.0
+    "pbt_max": 10.0,
+    "fcf_yield_min": 0.05
   },
   "universe": [
-    "AAPL",
-    "MSFT",
     "NVDA",
+    "NKE",
+    "CI",
     "AMZN",
+    "MSFT",
     "GOOGL",
     "JPM",
     "XOM",
-    "JNJ",
-    "WMT",
-    "META",
-    "TSLA",
-    "V",
-    "MA",
-    "PG",
-    "KO",
-    "UNH",
-    "CSCO",
-    "ORCL",
-    "DIS"
+    "KO"
   ],
   "pass": [
     {
-      "ticker": "UNH",
-      "name": "UnitedHealth Group",
-      "channel_position": -0.4513,
-      "payback_years": 9.54,
-      "margin_of_safety": -0.2751,
-      "dip_ok": true,
-      "pbt_ok": true
+      "ticker": "CI",
+      "name": "The Cigna Group",
+      "payback_years": 6.74,
+      "fcf_yield": 0.08,
+      "margin_of_safety": 0.0696,
+      "pbt_ok": true,
+      "fcf_ok": true
     },
     {
-      "ticker": "DIS",
-      "name": "Walt Disney Co.",
-      "channel_position": -0.4081,
-      "payback_years": 10.79,
-      "margin_of_safety": -0.715,
-      "dip_ok": true,
-      "pbt_ok": true
+      "ticker": "JPM",
+      "name": "JPMorgan Chase & Co.",
+      "payback_years": 8.66,
+      "fcf_yield": 0.09,
+      "margin_of_safety": -1.0008,
+      "pbt_ok": true,
+      "fcf_ok": true
     },
     {
-      "ticker": "NVDA",
-      "name": "NVIDIA Corp.",
-      "channel_position": -0.4041,
-      "payback_years": 9.46,
-      "margin_of_safety": 0.5975,
-      "dip_ok": true,
-      "pbt_ok": true
-    },
-    {
-      "ticker": "META",
-      "name": "Meta Platforms Inc.",
-      "channel_position": -0.3857,
-      "payback_years": 10.6,
-      "margin_of_safety": -0.0614,
-      "dip_ok": true,
-      "pbt_ok": true
-    },
-    {
-      "ticker": "AMZN",
-      "name": "Amazon.com Inc.",
-      "channel_position": -0.3816,
-      "payback_years": 11.16,
-      "margin_of_safety": 0.1288,
-      "dip_ok": true,
-      "pbt_ok": true
+      "ticker": "NKE",
+      "name": "Nike Inc.",
+      "payback_years": 9.61,
+      "fcf_yield": 0.055,
+      "margin_of_safety": 0.1679,
+      "pbt_ok": true,
+      "fcf_ok": true
     }
   ],
   "watch": [
     {
-      "ticker": "JPM",
-      "name": "JPMorgan Chase & Co.",
-      "channel_position": 0.4712,
-      "payback_years": 8.66,
-      "margin_of_safety": -1.0008,
-      "dip_ok": false,
-      "pbt_ok": true
+      "ticker": "NVDA",
+      "name": "NVIDIA Corp.",
+      "payback_years": 9.46,
+      "fcf_yield": 0.02,
+      "margin_of_safety": 0.5975,
+      "pbt_ok": true,
+      "fcf_ok": false
     },
     {
       "ticker": "GOOGL",
       "name": "Alphabet Inc.",
-      "channel_position": 0.4903,
       "payback_years": 10.0,
+      "fcf_yield": 0.04,
       "margin_of_safety": -0.0606,
-      "dip_ok": false,
-      "pbt_ok": true
-    },
-    {
-      "ticker": "CSCO",
-      "name": "Cisco Systems Inc.",
-      "channel_position": 0.518,
-      "payback_years": 11.13,
-      "margin_of_safety": -1.5087,
-      "dip_ok": false,
-      "pbt_ok": true
-    },
-    {
-      "ticker": "JNJ",
-      "name": "Johnson & Johnson",
-      "channel_position": 0.5637,
-      "payback_years": 11.48,
-      "margin_of_safety": -1.5364,
-      "dip_ok": false,
-      "pbt_ok": true
+      "pbt_ok": true,
+      "fcf_ok": false
     },
     {
       "ticker": "XOM",
       "name": "Exxon Mobil Corp.",
-      "channel_position": 1.3952,
       "payback_years": 10.68,
+      "fcf_yield": 0.07,
       "margin_of_safety": -2.2456,
-      "dip_ok": false,
-      "pbt_ok": true
+      "pbt_ok": false,
+      "fcf_ok": true
     }
   ]
 }

@@ -74,3 +74,16 @@ def enrich_config_with_live_prices(cfg: dict) -> dict:  # pragma: no cover - net
         if live is not None:
             row["price"] = live
     return cfg
+
+
+def enrich_config_with_live_data(cfg: dict) -> dict:  # pragma: no cover - network
+    """Overlay live prices AND live growth onto the config watchlist.
+
+    Growth comes from `core.fundamentals.earnings_cagr_growth` — the historical
+    operating-income CAGR (floored at 0) — for any row that does not set a
+    manual `growth_rate` override in the config. Precedence per row:
+    config override > computed CAGR > `skill.default_growth_rate`.
+    """
+    from .fundamentals import enrich_config_with_live_growth
+
+    return enrich_config_with_live_growth(enrich_config_with_live_prices(cfg))

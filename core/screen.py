@@ -21,7 +21,19 @@ def _defaults(cfg: dict) -> dict:
         "required_return": skill.get("required_return", 0.15),
         "margin": skill.get("margin_of_safety", 0.50),
         "default_future_pe": skill.get("default_future_pe", 15.0),
+        "default_growth": skill.get("default_growth_rate", 0.0),
     }
+
+
+def _resolve_growth(row: dict, d: dict) -> float:
+    """Resolve a row's growth rate with the documented precedence.
+
+    config manual override (`growth_rate` on the row — which live enrichment
+    via `core.fundamentals` never touches, and fills with the computed
+    operating-income CAGR when absent) > `skill.default_growth_rate` (0.0).
+    """
+    g = row.get("growth_rate")
+    return g if isinstance(g, (int, float)) else d["default_growth"]
 
 
 def valuations_from_config(cfg: dict) -> list[Valuation]:
@@ -34,7 +46,7 @@ def valuations_from_config(cfg: dict) -> list[Valuation]:
                 ticker=row["ticker"],
                 price=row["price"],
                 eps=row["eps"],
-                growth_rate=row["growth_rate"],
+                growth_rate=_resolve_growth(row, d),
                 future_pe=row.get("future_pe", d["default_future_pe"]),
                 years=d["years"],
                 required_return=d["required_return"],

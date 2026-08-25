@@ -115,9 +115,62 @@ def test_terminal_is_offline_no_external_http(index_html):
     assert "https://" not in index_html
 
 
-def test_terminal_has_all_six_tabs(index_html):
-    for tab in ["watchlist", "screen", "signals", "options", "macro", "exploration"]:
+def test_terminal_has_exactly_six_tabs(index_html):
+    for tab in ["watchlist", "screen", "signals", "options", "macro", "info"]:
         assert f'data-tab="{tab}"' in index_html
+    assert index_html.count('data-tab="') == 6
+
+
+def test_terminal_signals_tab_is_labeled_technicals(index_html):
+    # User-facing label renamed Signals -> Technicals; internal ids unchanged.
+    assert ">Technicals<" in index_html
+    assert ">Signals<" not in index_html
+    assert 'data-tab="signals"' in index_html
+    assert 'id="panel-signals"' in index_html
+    assert 'id="signals-list"' in index_html
+
+
+def test_terminal_has_info_glossary_tab(index_html):
+    assert 'data-tab="info"' in index_html
+    m = re.search(r'<section class="panel" id="panel-info">(.*?)</section>', index_html, re.S)
+    assert m, "panel-info section not found"
+    body = m.group(1)
+    for term in [
+        "engine",            # the deterministic-engine framing
+        "Payback Time",
+        "Margin of Safety",
+        "FCF yield",
+        "BUY",
+        "Stochastic",
+        "MACD",
+        "Break-even",
+        "Theta",
+        "not investment advice",
+    ]:
+        assert term in body, f"Info glossary missing term: {term}"
+
+
+def test_terminal_has_no_exploration_tab(index_html):
+    # The Exploration tab was removed — nothing may reference it.
+    assert 'data-tab="exploration"' not in index_html
+    assert "panel-exploration" not in index_html
+    assert "tbl-exploration" not in index_html
+    assert "exploration" not in index_html.lower()
+
+
+def test_terminal_screen_tab_states_the_two_cuts(index_html):
+    # The Screen tab documents Cut A (PBT <= 10y) and Cut B (FCF yield >= 5%).
+    assert "Payback ≤ 10y and FCF yield ≥ 5%" in index_html
+    assert "pbt_max" in index_html and "fcf_yield_min" in index_html
+
+
+def test_terminal_options_has_breakeven_block(index_html):
+    # The Options tab leads with a decision: break-evens + quantified drivers,
+    # not a raw spot×vol premium grid.
+    assert 'id="opt-breakeven"' in index_html
+    assert "breaks even at" in index_html
+    assert "What moves it most" in index_html
+    assert "opt-scenario" not in index_html  # the old expert-facing grid is gone
 
 
 def test_terminal_has_engine_agent_legend(index_html):
@@ -142,12 +195,56 @@ def test_terminal_has_signal_column_markup(index_html):
     assert "🟢" in index_html and "🟡" in index_html and "⚪" in index_html
     assert "🔴" in index_html and "🟠" in index_html
     assert "⚠" in index_html  # extended warning
-    assert "Signal" in index_html  # column header
+    assert "Technicals" in index_html  # column header (renamed from Signal)
 
 
 def test_terminal_has_expandable_evidence_trail(index_html):
     assert "detailHTML" in index_html
     assert "criteria" in index_html
+
+
+def test_terminal_signals_tab_shows_floor_and_ceiling_reads(index_html):
+    # The Technicals tab renders BOTH directions per name: the floor (buy) read
+    # and the ceiling (sell/trim) read, with the active side highlighted.
+    assert "Floor — buy timing" in index_html
+    assert "Ceiling — sell/trim timing" in index_html
+    assert "mutedside" in index_html            # the inactive read is muted
+    assert "'REACHING FLOOR'" in index_html     # badge mapping in renderSignals
+    assert "'REACHING CEILING'" in index_html
+    assert ".badge.flat" in index_html          # grey NEUTRAL badge styled
+    # Ceiling confirmations named in the flags.
+    assert "overbought" in index_html
+    assert "rolling over" in index_html
+    assert "lost the 50-day" in index_html
+
+
+def test_terminal_watchlist_column_flips_to_sell_at_upper_rail(index_html):
+    # The compact St·M·MA Watchlist column switches to the red Sell read when a
+    # name is at/above the upper rail, using the emitted ceiling fields.
+    assert "at_upper_rail" in index_html
+    assert "stoch_sell" in index_html and "macd_sell" in index_html and "ma_sell" in index_html
+    assert "'Sell '" in index_html or '"Sell "' in index_html
+
+
+def test_terminal_info_tab_explains_floor_and_ceiling(index_html):
+    m = re.search(r'<section class="panel" id="panel-info">(.*?)</section>', index_html, re.S)
+    assert m, "panel-info section not found"
+    body = m.group(1)
+    assert "Floor vs Ceiling" in body
+    assert "buy timing" in body
+    assert "sell/trim timing" in body
+    assert "REACHING FLOOR / NEUTRAL / REACHING CEILING" in body
+
+
+def test_terminal_data_js_carries_ceiling_fields():
+    # The bundled data.js must ship the real ceiling contract so the page
+    # renders both reads offline.
+    data_js = (ROOT / "core" / "dashboard" / "data.js").read_text()
+    for key in ('"stoch_sell"', '"macd_sell"', '"ma_sell"',
+                '"at_upper_rail"', '"ceiling_tier"', '"timing"'):
+        assert key in data_js, f"data.js missing {key}"
+    assert '"REACHING CEILING"' in data_js
+    assert '"REACHING FLOOR"' in data_js
 
 
 def test_terminal_ships_black_scholes_js(index_html):

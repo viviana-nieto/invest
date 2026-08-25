@@ -21,13 +21,15 @@
     color-scheme: dark;
   }
   * { box-sizing: border-box; }
+  html, body { overflow-x: hidden; }
   body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     margin: 0; background: var(--bg); color: var(--text); line-height: 1.45;
     -webkit-font-smoothing: antialiased;
   }
   .mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
-  .wrap { max-width: 1280px; margin: 0 auto; padding: clamp(.9rem, 2.4vw, 2rem); }
+  .wrap { width: 100%; max-width: 1600px; margin: 0 auto;
+    padding: clamp(.9rem, 2vw, 1.6rem) clamp(1rem, 4vw, 3rem); }
   a { color: var(--blue); text-decoration: none; }
 
   header.page h1 { font-size: 1.35rem; margin: 0 0 .25rem; color: #fff; letter-spacing: -.01em; }
@@ -52,8 +54,8 @@
   .panel { display: none; padding-top: 1.1rem; }
   .panel.active { display: block; }
 
-  /* tables */
-  .tablewrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px;
+  /* tables — wide tables scroll inside their wrapper, never the page */
+  .tablewrap { overflow-x: auto; max-width: 100%; border: 1px solid var(--border); border-radius: 10px;
     background: var(--panel); }
   table { border-collapse: collapse; width: 100%; font-size: .84rem; }
   thead th { position: sticky; top: 0; background: var(--panel-2); color: var(--muted);
@@ -79,6 +81,7 @@
   .badge.buy   { color: var(--green); background: rgba(63,185,80,.12); border-color: var(--green-2); }
   .badge.watch { color: var(--amber); background: rgba(210,153,34,.12); border-color: var(--amber); }
   .badge.pass  { color: var(--red);   background: rgba(248,81,73,.12);  border-color: var(--red); }
+  .badge.flat  { color: var(--muted); background: var(--panel-2); border-color: var(--border); }
 
   /* signal cell */
   .signal { white-space: nowrap; font-size: .8rem; }
@@ -90,7 +93,7 @@
 
   /* evidence checklist */
   ul.crit { list-style: none; margin: 0; padding: 0; display: grid; gap: .3rem;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+    grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr)); }
   .crit li { display: flex; align-items: center; gap: .5rem; padding: .4rem .6rem;
     background: var(--panel); border: 1px solid var(--border); border-radius: 7px; font-size: .8rem; }
   .mk { font-weight: 800; }
@@ -106,17 +109,18 @@
   .narr .tag { display: block; font-style: normal; font-size: .64rem; text-transform: uppercase;
     letter-spacing: .04em; color: var(--muted); margin-bottom: .25rem; }
 
-  /* cards / grids */
-  .cards { display: grid; gap: .8rem; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
-  .card { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: .9rem 1rem; }
-  .card h4 { margin: 0 0 .5rem; font-size: .9rem; color: #fff; }
-  .kv { display: flex; justify-content: space-between; font-size: .82rem; padding: .18rem 0;
-    border-bottom: 1px solid var(--border); }
+  /* cards / grids — auto-fit so cards wrap onto new rows instead of clipping */
+  .cards { display: grid; gap: .8rem; grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr)); }
+  .card { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: .9rem 1rem;
+    min-width: 0; }
+  .card h4 { margin: 0 0 .5rem; font-size: .9rem; color: #fff; overflow-wrap: anywhere; }
+  .kv { display: flex; justify-content: space-between; gap: .5rem; font-size: .82rem; padding: .18rem 0;
+    border-bottom: 1px solid var(--border); min-width: 0; }
   .kv:last-child { border-bottom: none; }
-  .kv .k { color: var(--muted); } .kv .v { color: var(--text); }
+  .kv .k { color: var(--muted); } .kv .v { color: var(--text); overflow-wrap: anywhere; text-align: right; }
   .sectitle { font-size: .95rem; color: #fff; margin: 1.4rem 0 .6rem; }
-  .lists { display: grid; gap: .9rem; grid-template-columns: 1fr 1fr; }
-  @media (max-width: 720px) { .lists { grid-template-columns: 1fr; } }
+  .lists { display: grid; gap: .9rem; grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)); }
+  .lists .listbox { min-width: 0; }
   .listbox { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: .8rem 1rem; }
   .listbox h4 { margin: 0 0 .5rem; font-size: .85rem; }
   .listbox.pass h4 { color: var(--green); } .listbox.watch h4 { color: var(--amber); }
@@ -126,25 +130,71 @@
   .listbox li:last-child { border-bottom: none; }
   .listbox .why { margin-left: auto; color: var(--muted); font-size: .72rem; }
 
-  /* signals tab */
-  .sigrow { display: grid; grid-template-columns: 5.5rem 1fr; gap: .3rem 1rem; align-items: center;
+  /* signals tab — one row per name: verdict badge + the floor AND ceiling reads */
+  .sigrow { display: grid; grid-template-columns: 11rem 1fr; gap: .3rem 1rem; align-items: center;
     padding: .55rem .8rem; border-bottom: 1px solid var(--border); }
   .sigrow:last-child { border-bottom: none; }
   .sigflags { display: flex; flex-wrap: wrap; gap: .35rem; }
   .flag { font-size: .74rem; padding: .12rem .45rem; border-radius: 6px; border: 1px solid var(--border);
     color: var(--muted); }
   .flag.on { color: var(--green); border-color: var(--green-2); background: rgba(63,185,80,.1); }
+  .flag.on.sell { color: var(--red); border-color: var(--red); background: rgba(248,81,73,.1); }
   .conv { font-size: .74rem; color: var(--muted); }
+  .sigsides { display: grid; gap: .45rem; min-width: 0; }
+  .sigside { min-width: 0; }
+  .sigside .sidelab { display: block; font-size: .7rem; font-weight: 700; color: var(--text);
+    margin-bottom: .2rem; }
+  .sigside .sidelab .sc { font-weight: 400; }
+  .sigside.mutedside { opacity: .45; }
+
+  /* info tab — plain-language glossary */
+  .info { display: grid; gap: .9rem; grid-template-columns: repeat(auto-fit, minmax(min(340px, 100%), 1fr));
+    margin-top: .8rem; }
+  .info .card { min-width: 0; }
+  .info p { margin: .5rem 0 0; font-size: .83rem; color: var(--muted); overflow-wrap: anywhere; }
+  .info p b { color: var(--text); }
+  .info .infolead { color: var(--text); }
+  .infonote { margin-top: .9rem; padding: .6rem .8rem; border: 1px dashed var(--border);
+    border-radius: 8px; font-size: .76rem; color: var(--muted); }
+  .infonote b { color: var(--text); }
 
   /* options */
-  form.opt { display: grid; gap: .8rem; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-    background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 1rem; align-items: end; }
-  form.opt label { display: flex; flex-direction: column; gap: .25rem; font-size: .74rem; color: var(--muted); }
+  form.opt { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 1rem; }
+  .optrow { display: grid; gap: .8rem; grid-template-columns: repeat(auto-fit, minmax(min(120px, 100%), 1fr)); align-items: end; }
+  form.opt label { display: flex; flex-direction: column; gap: .25rem; font-size: .74rem; color: var(--muted);
+    min-width: 0; }
   form.opt input, form.opt select { background: var(--bg); color: var(--text); border: 1px solid var(--border);
-    border-radius: 7px; padding: .45rem .55rem; font: inherit; font-size: .84rem; }
-  .optout { display: grid; gap: .8rem; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); margin: 1rem 0; }
+    border-radius: 7px; padding: .45rem .55rem; font: inherit; font-size: .84rem; width: 100%; min-width: 0; }
+  .optcards { display: grid; gap: .9rem; grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)); margin-top: .9rem; }
+  .optcard { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: .9rem 1rem;
+    min-width: 0; }
+  .optcard h4 { margin: 0 0 .6rem; font-size: .9rem; color: #fff; }
+  .optcard h4 .sc { font-weight: 400; }
+  .optcard .optrow { grid-template-columns: repeat(auto-fit, minmax(min(130px, 100%), 1fr)); }
+  .optout { display: grid; gap: .8rem; grid-template-columns: repeat(auto-fit, minmax(min(150px, 100%), 1fr)); margin: 1rem 0; }
   .optout .card .big { font-size: 1.6rem; font-weight: 700; color: #fff; }
   .optout .card .lbl { font-size: .72rem; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+  .optcard .optout { grid-template-columns: repeat(auto-fit, minmax(min(105px, 100%), 1fr)); margin: .9rem 0 .55rem; }
+  .optcard .optout .card { background: var(--panel); }
+  .optcard .optout .card .big { font-size: 1.15rem; }
+  .optsplit { font-size: .78rem; color: var(--muted); margin: 0; }
+  .optcompare { border: 1px dashed var(--border); border-radius: 10px; padding: .65rem .9rem;
+    margin-top: .9rem; font-size: .84rem; color: var(--text); }
+  .optcompare:empty { display: none; }
+  .optbe { background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
+    padding: .85rem 1rem; font-size: .86rem; color: var(--text); }
+  .optbe:empty { display: none; }
+  .optbe p { margin: 0 0 .55rem; }
+  .optbe p:last-child { margin-bottom: 0; }
+  .optbe .drv { color: var(--muted); font-size: .8rem; }
+  .optbe .verdict { color: #fff; }
+
+  /* phones — stack the options inputs and scenario cards full-width */
+  @media (max-width: 520px) {
+    .optrow, .optcard .optrow { grid-template-columns: 1fr; }
+    .optcards { grid-template-columns: 1fr; }
+    .sigrow { grid-template-columns: 1fr; padding: .55rem .6rem; }
+  }
 
   footer { margin-top: 1.6rem; color: var(--muted); font-size: .74rem; }
   footer code { background: var(--panel); padding: .1rem .35rem; border-radius: 4px; border: 1px solid var(--border); }
@@ -158,9 +208,9 @@
     <header class="page">
       <h1>Invest — open-source equity decision terminal</h1>
       <div class="sub">A deterministic value + timing engine ranks a universe; parallel LLM agents only narrate.
-        Every verdict, conviction, and signal below is arithmetic — reproducible and identical every run.</div>
+        Every verdict, conviction, and technical call below is arithmetic — reproducible and identical every run.</div>
       <div class="legend">
-        <span><span class="chip engine">⚙ Engine decides</span> <b>deterministic</b> — every verdict &amp; signal is a pure function of the numbers.</span>
+        <span><span class="chip engine">⚙ Engine decides</span> <b>deterministic</b> — every verdict &amp; technical call is a pure function of the numbers.</span>
         <span><span class="chip agent">🤖 Agents narrate</span> <b>LLM</b> — writes the one-line story; it never casts a vote.</span>
       </div>
     </header>
@@ -168,44 +218,67 @@
     <nav class="tabs" id="tabs">
       <button class="tab active" data-tab="watchlist">Watchlist</button>
       <button class="tab" data-tab="screen">Screen</button>
-      <button class="tab" data-tab="signals">Signals</button>
+      <button class="tab" data-tab="signals">Technicals</button>
       <button class="tab" data-tab="options">Options Pricing</button>
       <button class="tab" data-tab="macro">Macro</button>
-      <button class="tab" data-tab="exploration">Exploration</button>
+      <button class="tab" data-tab="info">Info</button>
     </nav>
 
     <section class="panel active" id="panel-watchlist">
       <div class="tablewrap"><table id="tbl-watchlist"><thead></thead><tbody></tbody></table></div>
-      <p class="sub" style="margin-top:.6rem">Click a row to expand the <b>evidence trail</b>. The <b>Signal</b> column is sortable — one click orders strongest-sell → strongest-buy.</p>
+      <p class="sub" style="margin-top:.6rem">Click a row to expand the <b>evidence trail</b>. The <b>Technicals</b> column is sortable — one click orders strongest-sell → strongest-buy.</p>
     </section>
 
     <section class="panel" id="panel-screen">
       <div id="screen-crit" class="ev-meta"></div>
       <div class="lists">
-        <div class="listbox pass"><h4>✅ Pass — meets both cuts</h4><ul id="screen-pass"></ul></div>
-        <div class="listbox watch"><h4>◆ Watch — meets one cut</h4><ul id="screen-watch"></ul></div>
+        <div class="listbox pass"><h4 id="screen-pass-h">✅ Pass — Payback ≤ 10y and FCF yield ≥ 5%</h4><ul id="screen-pass"></ul></div>
+        <div class="listbox watch"><h4 id="screen-watch-h">◆ Watch — meets one cut</h4><ul id="screen-watch"></ul></div>
       </div>
     </section>
 
     <section class="panel" id="panel-signals">
-      <p class="sub">The timing lens: four independent floor signals per name — <b>St</b>ochastic 14,5,3 · <b>M</b>ACD 8,17,9 · <b>MA</b> (price vs SMA50) · <b>Ch</b>annel (linreg). ≥2 of the 3 confirmations → strong floor.</p>
+      <p class="sub">The timing lens, both directions — <b>St</b>ochastic 14,5,3 · <b>M</b>ACD 8,17,9 · <b>MA</b> (price vs SMA50) · <b>Ch</b>annel (linreg).
+        Near the <b>lower</b> rail the <b>floor (buy)</b> read is active: oversold, MACD turning up, reclaiming the SMA50.
+        Near the <b>upper</b> rail the <b>ceiling (sell/trim)</b> read is active: overbought, MACD rolling over, losing the SMA50.
+        ≥2 of the 3 confirmations → strong; the badge folds it all into REACHING FLOOR / NEUTRAL / REACHING CEILING.</p>
       <div class="tablewrap" style="margin-top:.7rem"><div id="signals-list"></div></div>
     </section>
 
     <section class="panel" id="panel-options">
-      <p class="sub">Black-Scholes European option pricing — computed <b>live in your browser</b> (ported from <code>core/options.py</code>). No server.</p>
+      <p class="sub">Black-Scholes European option pricing — computed <b>live in your browser</b> (ported from <code>core/options.py</code>). No server. Price the same contract at two moments — <b>① now</b> and <b>② a future what-if date</b> — to see how the spot <i>and</i> the time left to expiry together drive the premium.</p>
       <form class="opt" id="opt-form">
-        <label>Ticker
-          <select id="opt-ticker"></select></label>
-        <label>Spot S <input id="opt-S" type="number" step="0.01" value="120"></label>
-        <label>Strike K <input id="opt-K" type="number" step="0.01" value="120"></label>
-        <label>Expiry <input id="opt-exp" type="date"></label>
-        <label>Volatility σ <input id="opt-vol" type="number" step="0.01" value="0.30"></label>
-        <label>Risk-free r <input id="opt-rate" type="number" step="0.005" value="0.04"></label>
+        <div class="optrow">
+          <label>Ticker
+            <select id="opt-ticker"></select></label>
+          <label>Strike K <input id="opt-K" type="number" step="0.01" value="120"></label>
+          <label>Volatility σ <input id="opt-vol" type="number" step="0.01" value="0.30"></label>
+          <label>Risk-free r <input id="opt-rate" type="number" step="0.005" value="0.04"></label>
+          <label>Expiry <input id="opt-exp" type="date"></label>
+        </div>
+        <div class="optcards">
+          <div class="optcard">
+            <h4>① Now <span class="sc">— valued as of today</span></h4>
+            <div class="optrow">
+              <label>Spot S <input id="opt-S" type="number" step="0.01" value="120"></label>
+            </div>
+            <div class="optout" id="opt-out"></div>
+            <p class="optsplit" id="opt-split-now"></p>
+          </div>
+          <div class="optcard">
+            <h4>② Future what-if <span class="sc">— re-priced with less time left</span></h4>
+            <div class="optrow">
+              <label>As of date <input id="opt-asof" type="date"></label>
+              <label>Spot on that date <input id="opt-S-future" type="number" step="0.01"></label>
+            </div>
+            <div class="optout" id="opt-out-future"></div>
+            <p class="optsplit" id="opt-split-future"></p>
+          </div>
+        </div>
+        <div class="optcompare" id="opt-compare"></div>
       </form>
-      <div class="optout" id="opt-out"></div>
-      <h3 class="sectitle">Scenario table — spot moves × volatility</h3>
-      <div class="tablewrap"><table id="opt-scenario"><thead></thead><tbody></tbody></table></div>
+      <h3 class="sectitle">Break-even &amp; what moves it — at the ① now inputs</h3>
+      <div class="optbe" id="opt-breakeven"></div>
     </section>
 
     <section class="panel" id="panel-macro">
@@ -214,14 +287,80 @@
       <div class="cards" id="macro-news"></div>
     </section>
 
-    <section class="panel" id="panel-exploration">
-      <p class="sub">A wider sample universe — same columns and Signal logic as the Watchlist.</p>
-      <div class="tablewrap" style="margin-top:.7rem"><table id="tbl-exploration"><thead></thead><tbody></tbody></table></div>
+    <section class="panel" id="panel-info">
+      <p class="sub">Every idea used on this dashboard, in plain language. No finance background assumed.</p>
+      <div class="info">
+        <div class="card">
+          <h4>How to read this dashboard</h4>
+          <p class="infolead"><b>⚙ The deterministic engine makes every call; 🤖 the LLM agents only narrate and route.</b>
+            Every verdict, tier, and number here is plain arithmetic on the inputs — same inputs, same answer, every run.
+            The italic one-liners marked 🤖 are commentary written after the fact; they never change a verdict.</p>
+          <p><b>Two lenses, one loop.</b> The Value lens asks "is this a good business at a fair price?"
+            The Technicals lens asks "is now a sensible moment?" A name is most interesting when both agree.</p>
+        </div>
+        <div class="card">
+          <h4>Value lens — is the business worth it?</h4>
+          <p><b>Payback Time (PBT)</b> — how many years of the company's earnings, growing at its current rate,
+            it would take to buy the whole company back at today's price. Fewer years = cheaper.
+            The verdict uses <b>&lt; 12 years</b>.</p>
+          <p><b>Margin of Safety (MoS)</b> — how far below fair "sticker" value the price sits.
+            +30% means you would pay 30% less than the estimate of what the business is worth — room to be wrong.</p>
+          <p><b>Free Cash Flow (FCF)</b> — the real cash left over after running and maintaining the business.
+            <b>FCF yield</b> divides that cash by the price you pay — like an interest rate on the purchase.</p>
+          <p><b>BUY / WATCH / PASS</b> — three checks: Payback &lt; 12y, Margin of Safety &gt; 0, positive FCF.
+            All 3 pass → <b>BUY</b>. 2 pass → <b>WATCH</b>. 1 or fewer → <b>PASS</b>.</p>
+        </div>
+        <div class="card">
+          <h4>Screen — the stricter cut</h4>
+          <p>A tighter, high-conviction filter than the watchlist verdict:
+            <b>Payback ≤ 10y AND FCF yield ≥ 5%</b>.</p>
+          <p><b>Pass</b> = clears both cuts. <b>Watch</b> = clears exactly one. Everything else drops out.</p>
+        </div>
+        <div class="card">
+          <h4>Technicals — is now a sensible moment?</h4>
+          <p><b>Stochastic (14,5,3)</b> — compares today's price to its recent range.
+            A low reading that is turning up says "oversold and recovering".</p>
+          <p><b>MACD (8,17,9)</b> — compares a fast and a slow average of the price.
+            When the gap between them turns up, downward momentum is fading.</p>
+          <p><b>SMA</b> — the simple 50-day average of the price. Sitting below it and reclaiming it
+            is the classic "finding a floor" pattern.</p>
+          <p><b>Channel (linreg)</b> — a straight trend line fitted through the last year of prices,
+            with a rail above and below. Near the lower rail = cheap versus its own trend;
+            the upper rail = stretched. ⚠ flags names still high inside a multi-year run-up.</p>
+          <p><b>Floor vs Ceiling</b> — the same checks read in both directions.
+            <b>Floor = buy timing</b>: near the <i>lower</i> rail while oversold and turning up
+            (Stochastic under 20, MACD turning up, price reclaiming its 50-day average) —
+            a decline running out of sellers. <b>Ceiling = sell/trim timing</b>: near the
+            <i>upper</i> rail while overbought and rolling over (Stochastic over 80, MACD
+            rolling over, price losing its 50-day average) — an advance running out of buyers.
+            The Technicals tab folds this into one badge: REACHING FLOOR / NEUTRAL / REACHING CEILING.</p>
+          <p><b>Tiers</b> — each side's checks combine into 🟢 strong (≥2 confirmations),
+            🟡 setting up (1), ⚪ watching (0); at the ceiling the dots flip to 🔴/🟠 sell-side.</p>
+          <p><b>The St·M·MA column</b> — one glyph per check (Stochastic · MACD · MA) plus the tier dot,
+            folded into a single signed score, so one click sorts strongest-sell → strongest-buy.</p>
+        </div>
+        <div class="card">
+          <h4>Options — the pricing sandbox</h4>
+          <p><b>Spot vs Strike</b> — spot is where the stock trades right now; strike is the fixed price
+            the contract lets you buy (call) or sell (put) at, no matter what the stock does.</p>
+          <p><b>Premium</b> — what the option itself costs today.</p>
+          <p><b>Delta (Δ)</b> — how much the premium moves when the stock moves $1;
+            also a rough "chance it finishes in the money".</p>
+          <p><b>Intrinsic vs Time value</b> — intrinsic is what the option would be worth if it expired
+            this second; the rest of the premium is time value, paid for what could still happen before expiry.</p>
+          <p><b>Break-even</b> — strike + premium for a call (strike − premium for a put):
+            where the stock must sit at expiry just to get your money back, also shown as the % move needed.</p>
+          <p><b>Theta decay</b> — time value melts away as expiry approaches, which is why "$85 today"
+            and "$85 in six months" are worth different amounts. That is exactly what the
+            ① Now vs ② Future what-if cards show.</p>
+        </div>
+      </div>
+      <p class="infonote">Educational glossary only — <b>not investment advice</b>. All numbers on this dashboard are sample data.</p>
     </section>
 
     <footer>
       Two lenses of one decision loop: <b>Value</b> (Payback&nbsp;Time&nbsp;&lt;&nbsp;12y · Margin&nbsp;of&nbsp;Safety&nbsp;&gt;&nbsp;0 · positive&nbsp;FCF → BUY/WATCH/PASS)
-      and <b>Timing</b> (Stochastic · MACD · SMA · linreg channel → the Signal column). Sample data — not investment advice.
+      and <b>Timing</b> (Stochastic · MACD · SMA · linreg channel → the Technicals column). Sample data — not investment advice.
       Regenerate with <code>python -m core.emit</code>.
     </footer>
   </div>
@@ -306,13 +445,14 @@ function bsDelta(S,K,T,r,sigma,kind){
     var cls = 'signal' + (mode==='ceiling' ? ' sell' : '') + (extended ? ' extended' : '');
     var growth = stock ? (stock.eps_growth_rate!=null ? stock.eps_growth_rate : 0) : 0;
     var pbt = stock ? stock.verdict.payback_years : null;
-    var tip = 'Payback ' + (pbt!=null?pbt.toFixed(1)+'y':'n/a') +
+    var tip = (tech.timing ? tech.timing + ' · ' : '') +
+      'Payback ' + (pbt!=null?pbt.toFixed(1)+'y':'n/a') +
       ' · assumed growth ' + pct(growth) + ' (capped at 25%) · channel ' + pct(tech.channel_position);
     var html = '<span class="'+cls+'" title="'+esc(tip)+'">'+prefix+cells+' '+dot+warn+'</span>';
     return { html: html, score: score };
   }
 
-  // ---- sortable table for Watchlist / Exploration
+  // ---- sortable table for the Watchlist
   function fundTable(tblId, rows, tech){
     var cols = [
       {key:'verdict', label:'Verdict', num:false, val:function(r){return {BUY:3,WATCH:2,PASS:1}[r.verdict.verdict]||0;}},
@@ -324,7 +464,7 @@ function bsDelta(S,K,T,r,sigma,kind){
       {key:'mos',     label:'MoS',     num:true,  val:function(r){return r.verdict.margin_of_safety;}},
       {key:'fcf',     label:'FCF yld', num:true,  val:function(r){return r.fcf_yield;}},
       {key:'growth',  label:'Growth',  num:true,  val:function(r){return r.eps_growth_rate;}},
-      {key:'signal',  label:'Signal',  num:false, val:function(r){return signalInfo(tech[r.ticker]||{}, r).score;}}
+      {key:'signal',  label:'Technicals',  num:false, val:function(r){return signalInfo(tech[r.ticker]||{}, r).score;}}
     ];
     var state = { key:'verdict', dir:-1 };
     var tbl = document.getElementById(tblId);
@@ -403,14 +543,18 @@ function bsDelta(S,K,T,r,sigma,kind){
   // ---- Screen tab
   function renderScreen(s){
     var c = s.criteria;
+    var fcfMin = (c.fcf_yield_min*100).toFixed(0)+'%';
     document.getElementById('screen-crit').innerHTML =
-      '<span>Dip cut: channel position ≤ <b>'+pct(c.dip_max)+'</b></span>'+
-      '<span>Value cut: Payback Time &lt; <b>'+c.pbt_cut+'y</b></span>'+
+      '<span>Cut A: Payback Time ≤ <b>'+c.pbt_max+'y</b></span>'+
+      '<span>Cut B: FCF yield ≥ <b>'+fcfMin+'</b></span>'+
       '<span>Universe: <b>'+s.universe.length+'</b> names</span>';
+    document.getElementById('screen-pass-h').textContent =
+      '✅ Pass — Payback ≤ '+c.pbt_max+'y and FCF yield ≥ '+fcfMin;
+    document.getElementById('screen-watch-h').textContent = '◆ Watch — meets one cut';
     function li(e){
       var why = [];
-      why.push((e.dip_ok?'✅':'❌')+' dip '+pct(e.channel_position));
       why.push((e.pbt_ok?'✅':'❌')+' PBT '+e.payback_years.toFixed(1)+'y');
+      why.push((e.fcf_ok?'✅':'❌')+' FCF '+(e.fcf_yield*100).toFixed(1)+'%');
       return '<li><span class="tk mono">'+esc(e.ticker)+'</span><span class="nm">'+esc(e.name)+'</span>'+
         '<span class="why">'+why.join(' · ')+'</span></li>';
     }
@@ -418,39 +562,74 @@ function bsDelta(S,K,T,r,sigma,kind){
     document.getElementById('screen-watch').innerHTML = s.watch.length ? s.watch.map(li).join('') : '<li class="sc">none</li>';
   }
 
-  // ---- Signals tab
+  // ---- Signals tab — both directions per name: the floor (buy) read and the
+  // ceiling (sell/trim) read, with the ACTIVE side (picked by which rail the
+  // name is pressing) highlighted and the other muted.
   function renderSignals(all, tech){
     var host = document.getElementById('signals-list');
+    function flag(label, on, val, sell){
+      return '<span class="flag '+(on?(sell?'on sell':'on'):'')+'">'+label+' '+(on?'✅':'❌')+' '+esc(val)+'</span>';
+    }
     host.innerHTML = all.map(function(r){
       var t = tech[r.ticker]; if(!t) return '';
-      var flags = [
-        ['St', t.stoch_pass, '%K '+Math.round(t.stoch_k)],
-        ['MACD', t.macd_pass, 'hist '+(t.macd_pass?'up':'down')],
-        ['SMA50', t.ma_pass, t.ma_pass?'below':'above'],
-        ['Channel', t.at_lower_rail, pct(t.channel_position)]
-      ];
-      var met = flags.filter(function(f){return f[1];}).length;
-      var verdict = met>=3 ? 'REACHING FLOOR' : (met===0 ? 'EXTENDED' : 'NEUTRAL');
-      var fh = flags.map(function(f){
-        return '<span class="flag '+(f[1]?'on':'')+'">'+f[0]+' '+(f[1]?'✅':'❌')+' '+esc(f[2])+'</span>';
-      }).join('');
-      return '<div class="sigrow"><div><span class="tk mono">'+esc(r.ticker)+'</span><div class="conv">'+
-        verdict+' · '+met+'/4</div></div><div class="sigflags">'+fh+'</div></div>';
+      var ceilingMode = !!t.at_upper_rail;               // active read follows the rail
+      var timing = t.timing || 'NEUTRAL';
+      var badgeCls = timing==='REACHING FLOOR' ? 'buy' : (timing==='REACHING CEILING' ? 'pass' : 'flat');
+      var badge = '<span class="badge '+badgeCls+'">'+esc(timing)+'</span>';
+      var fN = (t.stoch_pass?1:0)+(t.macd_pass?1:0)+(t.ma_pass?1:0);
+      var cN = (t.stoch_sell?1:0)+(t.macd_sell?1:0)+(t.ma_sell?1:0);
+      var floorDot = fN>=2 ? '🟢' : (fN===1 ? '🟡' : '⚪');
+      var ceilDot  = cN>=2 ? '🔴' : (cN===1 ? '🟠' : '⚪');
+      var floorFlags = [
+        flag('St', t.stoch_pass, '%K '+Math.round(t.stoch_k)+(t.stoch_pass?' oversold':'')),
+        flag('MACD', t.macd_pass, t.macd_pass?'turning up':'not turning up'),
+        flag('SMA50', t.ma_pass, t.ma_pass?'below — reclaim zone':'above')
+      ].join('');
+      var ceilFlags = [
+        flag('St', t.stoch_sell, '%K '+Math.round(t.stoch_k)+(t.stoch_sell?' overbought':''), true),
+        flag('MACD', t.macd_sell, t.macd_sell?'rolling over':'holding up', true),
+        flag('SMA50', t.ma_sell, t.ma_sell?'lost the 50-day':'holding the 50-day', true)
+      ].join('');
+      var rail = t.at_lower_rail ? 'lower rail' : (t.at_upper_rail ? 'upper rail' : 'mid-channel');
+      return '<div class="sigrow"><div>'+
+        '<span class="tk mono">'+esc(r.ticker)+'</span>'+
+        '<div class="conv" style="margin:.25rem 0">'+badge+'</div>'+
+        '<div class="conv">Ch '+pct(t.channel_position)+' · '+rail+'</div></div>'+
+        '<div class="sigsides">'+
+          '<div class="sigside'+(ceilingMode?' mutedside':'')+'">'+
+            '<span class="sidelab">'+floorDot+' Floor — buy timing <span class="sc">('+fN+'/3 confirm)</span></span>'+
+            '<div class="sigflags">'+floorFlags+'</div></div>'+
+          '<div class="sigside'+(ceilingMode?'':' mutedside')+'">'+
+            '<span class="sidelab">'+ceilDot+' Ceiling — sell/trim timing <span class="sc">('+cN+'/3 confirm)</span></span>'+
+            '<div class="sigflags">'+ceilFlags+'</div></div>'+
+        '</div></div>';
     }).join('');
   }
 
   // ---- Options tab
   var OPT = { data: [] };
+  var DAY_MS = 24*3600*1000;
+  function isoDate(d){ return d.toISOString().slice(0,10); }
   function renderOptionsInit(all){
     OPT.data = all;
     var sel = document.getElementById('opt-ticker');
     sel.innerHTML = all.map(function(r){ return '<option value="'+esc(r.ticker)+'">'+esc(r.ticker)+'</option>'; }).join('');
     var exp = document.getElementById('opt-exp');
+    var today = new Date();
     var d = new Date(); d.setFullYear(d.getFullYear()+1);
-    exp.value = d.toISOString().slice(0,10);
+    exp.value = isoDate(d);
+    // ② default as-of date: today + 6 months, clamped into [today, expiry]
+    var asof = document.getElementById('opt-asof');
+    var a = new Date(); a.setMonth(a.getMonth()+6);
+    if(a > d) a = d;
+    if(a < today) a = new Date(today);
+    asof.value = isoDate(a);
+    asof.min = isoDate(today);
+    asof.max = exp.value;
     function onTicker(){
       var r = all.filter(function(x){return x.ticker===sel.value;})[0];
       if(r){ document.getElementById('opt-S').value = r.price.toFixed(2);
+        document.getElementById('opt-S-future').value = r.price.toFixed(2);
         document.getElementById('opt-K').value = r.price.toFixed(2);
         document.getElementById('opt-vol').value = (r.volatility_1yr||0.3).toFixed(2); }
       recompute();
@@ -459,33 +638,102 @@ function bsDelta(S,K,T,r,sigma,kind){
     sel.addEventListener('change', onTicker);
     onTicker();
   }
-  function yearsTo(dateStr){
-    var t = (new Date(dateStr) - new Date())/(365*24*3600*1000);
+  // Time to expiry in years, valued as of `fromDate` (T floors at 0 past expiry).
+  function yearsTo(expiryStr, fromDate){
+    var t = (new Date(expiryStr) - fromDate)/(365.25*DAY_MS);
     return Math.max(t, 0);
   }
+  function priceScenario(S,K,T,r,sig){
+    return { S:S, T:T,
+      call:bsCall(S,K,T,r,sig), put:bsPut(S,K,T,r,sig),
+      dc:bsDelta(S,K,T,r,sig,'call'), dp:bsDelta(S,K,T,r,sig,'put'),
+      ci:Math.max(S-K,0), pi:Math.max(K-S,0) };
+  }
+  function scenarioCards(p){
+    return card('Call premium', money(p.call)) + card('Put premium', money(p.put)) +
+      card('Call Δ', p.dc.toFixed(3)) + card('Put Δ', p.dp.toFixed(3)) +
+      card('T (years)', p.T.toFixed(2));
+  }
+  function splitLine(p){
+    var ct=Math.max(p.call-p.ci,0), pt=Math.max(p.put-p.pi,0);
+    return 'Call '+money(p.call)+' = '+money(p.ci)+' intrinsic + '+money(ct)+' time · '+
+      'Put '+money(p.put)+' = '+money(p.pi)+' intrinsic + '+money(pt)+' time'+
+      (p.T<=0 ? ' — at/past expiry: intrinsic value only' : '');
+  }
+  function signedMoney(x){ return (x>=0?'+':'−')+'$'+Math.abs(x).toFixed(2); }
   function recompute(){
-    var S=parseFloat(document.getElementById('opt-S').value),
-        K=parseFloat(document.getElementById('opt-K').value),
+    var K=parseFloat(document.getElementById('opt-K').value),
         sig=parseFloat(document.getElementById('opt-vol').value),
         r=parseFloat(document.getElementById('opt-rate').value),
-        T=yearsTo(document.getElementById('opt-exp').value);
-    if([S,K,sig,r].some(isNaN)) return;
-    var call=bsCall(S,K,T,r,sig), put=bsPut(S,K,T,r,sig),
-        dc=bsDelta(S,K,T,r,sig,'call'), dp=bsDelta(S,K,T,r,sig,'put');
-    document.getElementById('opt-out').innerHTML =
-      card('Call premium', money(call)) + card('Put premium', money(put)) +
-      card('Call Δ', dc.toFixed(3)) + card('Put Δ', dp.toFixed(3)) +
-      card('T (years)', T.toFixed(2));
-    // scenario table
-    var spots=[-0.1,-0.05,0,0.05,0.1], vols=[Math.max(sig-0.1,0.05), sig, sig+0.1];
-    var thead='<tr><th>Spot</th>'+vols.map(function(v){return '<th class="num">σ '+v.toFixed(2)+'</th>';}).join('')+'</tr>';
-    var tb=spots.map(function(sp){
-      var s2=S*(1+sp);
-      return '<tr><td class="mono">'+money(s2)+' <span class="sc">('+signedPct(sp)+')</span></td>'+
-        vols.map(function(v){ return '<td class="num mono">'+money(bsCall(s2,K,T,r,v))+'</td>'; }).join('')+'</tr>';
-    }).join('');
-    var st=document.getElementById('opt-scenario');
-    st.querySelector('thead').innerHTML=thead; st.querySelector('tbody').innerHTML=tb;
+        expStr=document.getElementById('opt-exp').value;
+    var asofEl=document.getElementById('opt-asof');
+    if(expStr) asofEl.max = expStr;   // keep the what-if date pickable only up to expiry
+    var outNow=document.getElementById('opt-out'),
+        splitNow=document.getElementById('opt-split-now'),
+        outFut=document.getElementById('opt-out-future'),
+        splitFut=document.getElementById('opt-split-future'),
+        cmp=document.getElementById('opt-compare'),
+        be=document.getElementById('opt-breakeven');
+    if([K,sig,r].some(isNaN) || !expStr){
+      outNow.innerHTML=''; outFut.innerHTML=''; cmp.innerHTML='';
+      splitNow.innerHTML=''; splitFut.innerHTML='';
+      be.innerHTML='';
+      return;
+    }
+    // ① Now — spot today, valued as of today.
+    var S1=parseFloat(document.getElementById('opt-S').value);
+    var Tnow=yearsTo(expStr, new Date());
+    var p1=null;
+    if(!isNaN(S1)){
+      p1=priceScenario(S1,K,Tnow,r,sig);
+      outNow.innerHTML=scenarioCards(p1); splitNow.innerHTML=splitLine(p1);
+    } else { outNow.innerHTML=''; splitNow.innerHTML='<span class="sc">enter a spot price</span>'; }
+    // ② Future what-if — hypothetical spot, valued as of the chosen date (T shrinks).
+    var S2=parseFloat(document.getElementById('opt-S-future').value);
+    var asofStr=asofEl.value, p2=null;
+    if(!isNaN(S2) && asofStr){
+      p2=priceScenario(S2,K,yearsTo(expStr, new Date(asofStr)),r,sig);
+      outFut.innerHTML=scenarioCards(p2); splitFut.innerHTML=splitLine(p2);
+    } else { outFut.innerHTML=''; splitFut.innerHTML='<span class="sc">pick an as-of date and a spot</span>'; }
+    // Comparison: now → future change in the call premium.
+    if(p1 && p2){
+      var diff=p2.call-p1.call;
+      if(Math.abs(S2-S1) < 0.005){
+        cmp.innerHTML='② Future call <b class="mono">'+signedMoney(diff)+'</b> vs ① now — the stock is unchanged here, '+
+          'so that’s pure time decay (θ): same strike and vol, time to expiry '+
+          p1.T.toFixed(2)+'y → '+p2.T.toFixed(2)+'y.';
+      } else {
+        cmp.innerHTML='② Future call <b class="mono">'+signedMoney(diff)+'</b> vs ① now — a net change that blends the '+
+          'spot move ('+money(S1)+' → '+money(S2)+') with the shorter time to expiry ('+
+          p1.T.toFixed(2)+'y → '+p2.T.toFixed(2)+'y).';
+      }
+    } else cmp.innerHTML='';
+    // Break-even & drivers — plain-language decision readout at the ① now inputs.
+    // Break-evens are pure arithmetic (strike ± premium); the driver deltas are exact
+    // re-prices of the same contract, not opinions. Holds at T≈0 too (premium → intrinsic).
+    if(p1 && S1>0){
+      var tick=esc(document.getElementById('opt-ticker').value||'the stock');
+      var beC=K+p1.call, beCpct=(beC-S1)/S1*100;
+      var callLine='<b>Call</b> costs '+money(p1.call)+' → breaks even at <b class="mono">'+money(beC)+
+        '</b> (strike + premium). '+tick+' must <b>rise +'+beCpct.toFixed(1)+'%</b> by expiry to profit.';
+      var beP=K-p1.put, putLine;
+      if(beP<=0){
+        putLine='<b>Put</b> costs '+money(p1.put)+' — the premium exceeds the strike, so even a fall to $0 can’t break even.';
+      } else {
+        var bePpct=(S1-beP)/S1*100;
+        putLine='<b>Put</b> costs '+money(p1.put)+' → breaks even at <b class="mono">'+money(beP)+
+          '</b> (strike − premium). '+tick+' must <b>fall −'+bePpct.toFixed(1)+'%</b> by expiry to profit.';
+      }
+      var dPrice=bsCall(S1*1.05,K,Tnow,r,sig)-p1.call;
+      var dVol=bsCall(S1,K,Tnow,r,sig+0.10)-p1.call;
+      var verdict=dPrice>=dVol ? 'Direction is the bigger lever here' : 'Volatility matters more here';
+      var drv='<span class="drv">⚙ What moves it most: a <b>+5%</b> move in '+tick+' → call <b class="mono">'+
+        signedMoney(dPrice)+'</b> · a <b>+0.10</b> rise in volatility → call <b class="mono">'+signedMoney(dVol)+
+        '</b>.</span> <span class="verdict"><b>'+verdict+'</b>.</span>';
+      be.innerHTML='<p>'+callLine+'</p><p>'+putLine+'</p><p>'+drv+'</p>';
+    } else {
+      be.innerHTML='';
+    }
   }
   function card(lbl, val){ return '<div class="card"><div class="lbl">'+lbl+'</div><div class="big mono">'+val+'</div></div>'; }
 
@@ -526,10 +774,9 @@ function bsDelta(S,K,T,r,sigma,kind){
     var tech = (D.technicals && D.technicals.signals) || {};
     initTabs();
     fundTable('tbl-watchlist', D.data.slice(), tech);
-    fundTable('tbl-exploration', D.exploration.slice(), tech);
     renderScreen(D.screen);
-    renderSignals(D.data.concat(D.exploration), tech);
-    renderOptionsInit(D.data.concat(D.exploration));
+    renderSignals(D.data.slice(), tech);
+    renderOptionsInit(D.data.slice());
     renderMacro(D.macro);
   }
 
@@ -543,9 +790,9 @@ function bsDelta(S,K,T,r,sigma,kind){
     boot(window.INVEST_DATA);
   } else {
     var base = '../../sample-data/';
-    Promise.all(['data','exploration','technicals','screen','macro_data']
+    Promise.all(['data','technicals','screen','macro_data']
       .map(function(f){ return fetch(base+f+'.json').then(function(r){return r.json();}); }))
-      .then(function(a){ boot({data:a[0], exploration:a[1], technicals:a[2], screen:a[3], macro:a[4]}); })
+      .then(function(a){ boot({data:a[0], technicals:a[1], screen:a[2], macro:a[3]}); })
       .catch(function(e){ document.querySelector('.wrap').insertAdjacentHTML('beforeend',
         '<div class="empty">Run <code>python -m core.emit</code> to generate sample data.</div>'); });
   }

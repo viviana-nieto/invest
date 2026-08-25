@@ -1,0 +1,16 @@
+{
+  "name": "invest-open-web-engine",
+  "private": true,
+  "version": "0.1.0",
+  "description": "TypeScript port of the invest-open deterministic engine (valuation, options, signals, decision, screen) with a Python parity gate.",
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "fixtures": "python3 scripts/dump_engine.py",
+    "test": "node --test engine/__tests__/parity.test.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "typescript": "^5.7.0"
+  }
+}

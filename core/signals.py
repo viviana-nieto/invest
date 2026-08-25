@@ -1,4 +1,4 @@
-"""Floor-signal timing engine (Part 2: TIMING, "when to buy it").
+"""Floor/ceiling timing engine (Part 2: TIMING, "when to buy — and when to trim").
 
 Four *independent* technical signals computed from a price series with numpy —
 no TA library, no network. Each answers a yes/no question about whether a name is
@@ -10,13 +10,18 @@ pressing against a floor. Their convergence is the call; the LLM never decides.
   3. MACD(8,17,9)               — is the histogram turning up (momentum inflecting)?
   4. SMA position (vs 50-day)   — is price below its longer-term average (depressed)?
 
-Convergence verdict:
+Convergence verdict (`timing_signals`, the floor-only lens used by core.decision):
   REACHING FLOOR  >= 3 of 4 met
   NEUTRAL          1 or 2 met
   EXTENDED         0 met     (nothing says floor; the tape is stretched)
 
+The same checks also read in the *sell* direction. `rail_checks` runs both sides
+at once — floor (buy) confirmations near the lower channel rail, ceiling
+(sell/trim) confirmations near the upper rail — and folds them into one overall
+timing verdict: REACHING FLOOR / NEUTRAL / REACHING CEILING.
+
 All functions take plain 1-D numpy arrays (oldest -> newest) and return floats or
-booleans. `timing_signals` wraps them into the dashboard-ready dict.
+booleans. `timing_signals` wraps the floor side into the dashboard-ready dict.
 """
 
 from __future__ import annotations
@@ -217,4 +222,107 @@ def timing_signals(closes, highs=None, lows=None,
         "score": f"{met}/{total} floor conditions met",
         "met": met,
         "total": total,
+    }
+
+
+# ---- ceiling (sell/trim) mirror + the combined timing read ------------------
+
+# Channel-position rails: which third of the linreg channel makes each read
+# "active". position <= DIP_MAX -> the floor (buy) read is live; position >=
+# CEILING_MIN -> the ceiling (sell/trim) read is live. Because DIP_MAX <
+# CEILING_MIN, a name is near the lower rail OR the upper rail — never both.
+DIP_MAX = 0.34       # at/under == pressing the lower third of the channel
+CEILING_MIN = 0.66   # at/over  == pressing the upper third of the channel
+
+
+def confirmation_tier(confirms: int) -> str:
+    """Fold a 0–3 confirmation count into the dashboard tier."""
+    if confirms >= 2:
+        return "strong"
+    if confirms == 1:
+        return "setting-up"
+    return "watching"
+
+
+def rail_checks(closes, highs=None, lows=None, channel_period: int = 100,
+                num_std: float = 2.0, sma_period: int = 50,
+                dip_max: float = DIP_MAX, ceiling_min: float = CEILING_MIN) -> dict:
+    """Both directions of the timing lens in one deterministic read.
+
+    Floor (buy) confirmations — is a decline exhausting?
+      stoch_pass  Stochastic slow %K oversold (< 20)
+      macd_pass   MACD histogram turning up (bullish inflection)
+      ma_pass     price below its SMA50 (depressed; reclaiming from beneath)
+
+    Ceiling (sell/trim) confirmations — is an advance exhausting?
+      stoch_sell  Stochastic slow %K overbought (> 80)
+      macd_sell   MACD histogram rolling over (bearish turn)
+      ma_sell     price losing the SMA50 (crossing below / below it)
+
+    Rails: ``at_lower_rail`` == channel position <= dip_max, ``at_upper_rail``
+    == position >= ceiling_min — mutually exclusive by construction.
+
+    Tiers fold each side's confirmations: strong (>= 2 of 3), setting-up (1),
+    watching (0). ``ceiling_tier`` is meaningful when the name is near the
+    upper rail; ``tier`` (floor) when near the lower rail.
+
+    Overall ``timing`` verdict:
+      REACHING CEILING  near the upper rail with >= 2 ceiling confirmations
+      REACHING FLOOR    near the lower rail with >= 2 floor confirmations
+      NEUTRAL           anything else
+    """
+    c = _as_array(closes)
+    h = _as_array(highs) if highs is not None else c
+    l = _as_array(lows) if lows is not None else c
+
+    st = stochastic(h, l, c)
+    m = macd(c)
+    s50 = sma(c, sma_period)
+    ref = float(s50[-1]) if not np.isnan(s50[-1]) else float(np.mean(c))
+    price = float(c[-1])
+    ch = linreg_channel(c, period=channel_period, num_std=num_std)
+    position = float(ch["position"])
+
+    # Floor (buy) side.
+    stoch_pass = st["k"] < 20.0
+    macd_pass = m["hist_change"] > 0.0
+    ma_pass = price < ref
+
+    # Ceiling (sell/trim) side — the inverted mirror. `ma_sell` is a breakdown
+    # check ("the 50-day is lost"), not merely "above the average": a name still
+    # riding above its SMA50 has not yet confirmed the sell.
+    stoch_sell = st["k"] > 80.0
+    macd_sell = m["hist_change"] < 0.0
+    ma_sell = price < ref
+
+    at_lower_rail = position <= dip_max
+    at_upper_rail = position >= ceiling_min
+
+    floor_confirms = int(stoch_pass) + int(macd_pass) + int(ma_pass)
+    ceiling_confirms = int(stoch_sell) + int(macd_sell) + int(ma_sell)
+
+    if at_upper_rail and ceiling_confirms >= 2:
+        timing = "REACHING CEILING"
+    elif at_lower_rail and floor_confirms >= 2:
+        timing = "REACHING FLOOR"
+    else:
+        timing = "NEUTRAL"
+
+    return {
+        "stoch_k": float(st["k"]),
+        "stoch_d": float(st["d"]),
+        "stoch_pass": bool(stoch_pass),
+        "macd_pass": bool(macd_pass),
+        "ma_pass": bool(ma_pass),
+        "stoch_sell": bool(stoch_sell),
+        "macd_sell": bool(macd_sell),
+        "ma_sell": bool(ma_sell),
+        "channel_position": position,
+        "at_lower_rail": bool(at_lower_rail),
+        "at_upper_rail": bool(at_upper_rail),
+        "floor_confirms": floor_confirms,
+        "ceiling_confirms": ceiling_confirms,
+        "tier": confirmation_tier(floor_confirms),
+        "ceiling_tier": confirmation_tier(ceiling_confirms),
+        "timing": timing,
     }

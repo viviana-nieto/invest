@@ -43,6 +43,14 @@ def test_has_an_extended_name(bundle):
     assert any(s["channel_position_long"] >= 0.66 for s in sigs.values())
 
 
+def test_screen_has_a_real_pass_watch_spread(bundle):
+    # Screen cuts (PBT <= 10y AND FCF yield >= 5%) must produce a lively
+    # sample: at least two names meeting both cuts and two meeting exactly one.
+    s = bundle["screen"]
+    assert len(s["pass"]) >= 2
+    assert len(s["watch"]) >= 2
+
+
 def test_sparklines_nonempty(bundle):
     for o in bundle["data"]:
         assert o["sparkline"] and all(isinstance(x, (int, float)) for x in o["sparkline"])

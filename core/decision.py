@@ -123,7 +123,7 @@ class Stock:
 def stocks_from_config(cfg: dict) -> list[Stock]:
     """Parse the config watchlist into Stock objects, reusing the valuation
     defaults from `core.screen`."""
-    from .screen import _defaults
+    from .screen import _defaults, _resolve_growth
 
     d = _defaults(cfg)
     out: list[Stock] = []
@@ -132,7 +132,7 @@ def stocks_from_config(cfg: dict) -> list[Stock]:
             ticker=row["ticker"],
             price=row["price"],
             eps=row["eps"],
-            growth_rate=row["growth_rate"],
+            growth_rate=_resolve_growth(row, d),
             future_pe=row.get("future_pe", d["default_future_pe"]),
             years=d["years"],
             required_return=d["required_return"],

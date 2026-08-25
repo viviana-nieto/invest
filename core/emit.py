@@ -13,7 +13,6 @@ Files written into ``sample-data/``:
 
   * ``data.json``         — LIST of per-stock objects (watchlist), each with the
                             fundamentals contract + a ``verdict`` block.
-  * ``exploration.json``  — a wider generic universe, same schema as data.json.
   * ``technicals.json``   — ``{generated, signals:{TICKER:{...}}}`` timing fields.
   * ``screen.json``       — ``{generated, criteria, universe, pass, watch}``.
   * ``macro_data.json``   — a small sample macro snapshot.
@@ -50,24 +49,16 @@ DATA_JS = ROOT / "core" / "dashboard" / "data.js"
 # Fixed stamp keeps regeneration byte-identical (determinism tests depend on it).
 GENERATED = "sample"
 
-# Screen thresholds (documented in the dashboard's Screen tab).
-DIP_MAX = 0.34   # channel position at/under this == pressing the lower third
-PBT_CUT = 12.0   # Payback Time cut, matches the decision engine
+# Timing rails (used by the Signals lens' at_lower_rail / at_upper_rail flags).
+# The real thresholds live in core.signals; re-exported here for back-compat.
+DIP_MAX = sig.DIP_MAX          # at/under == pressing the lower third (floor read)
+CEILING_MIN = sig.CEILING_MIN  # at/over  == pressing the upper third (ceiling read)
 
-# Extra generic mega-caps for the Exploration tab — a wider universe, same
-# schema as the watchlist. NONE are personal-portfolio tickers.
-EXPLORATION_UNIVERSE = [
-    {"ticker": "META",  "name": "Meta Platforms Inc.", "sector": "Communication Services", "industry": "Internet Content & Information", "price": 500.0, "eps": 18.0, "growth_rate": 0.16, "future_pe": 24.0, "fcf": "positive", "shape": "floor"},
-    {"ticker": "TSLA",  "name": "Tesla Inc.",          "sector": "Consumer Discretionary", "industry": "Auto Manufacturers",            "price": 250.0, "eps": 3.5,  "growth_rate": 0.22, "future_pe": 40.0, "fcf": "positive", "shape": "extended"},
-    {"ticker": "V",     "name": "Visa Inc.",           "sector": "Financials",             "industry": "Credit Services",              "price": 280.0, "eps": 9.5,  "growth_rate": 0.12, "future_pe": 26.0, "fcf": "positive", "shape": "neutral"},
-    {"ticker": "MA",    "name": "Mastercard Inc.",     "sector": "Financials",             "industry": "Credit Services",              "price": 470.0, "eps": 13.0, "growth_rate": 0.13, "future_pe": 30.0, "fcf": "positive", "shape": "extended"},
-    {"ticker": "PG",    "name": "Procter & Gamble Co.","sector": "Consumer Staples",       "industry": "Household Products",           "price": 165.0, "eps": 6.4,  "growth_rate": 0.06, "future_pe": 20.0, "fcf": "positive", "shape": "neutral"},
-    {"ticker": "KO",    "name": "Coca-Cola Co.",       "sector": "Consumer Staples",       "industry": "Beverages",                    "price": 62.0,  "eps": 2.5,  "growth_rate": 0.06, "future_pe": 22.0, "fcf": "positive", "shape": "neutral"},
-    {"ticker": "UNH",   "name": "UnitedHealth Group",  "sector": "Health Care",            "industry": "Healthcare Plans",             "price": 520.0, "eps": 27.0, "growth_rate": 0.13, "future_pe": 18.0, "fcf": "positive", "shape": "floor"},
-    {"ticker": "CSCO",  "name": "Cisco Systems Inc.",  "sector": "Technology",             "industry": "Communication Equipment",      "price": 50.0,  "eps": 3.3,  "growth_rate": 0.05, "future_pe": 15.0, "fcf": "positive", "shape": "neutral"},
-    {"ticker": "ORCL",  "name": "Oracle Corp.",        "sector": "Technology",             "industry": "Software Infrastructure",      "price": 140.0, "eps": 4.2,  "growth_rate": 0.11, "future_pe": 22.0, "fcf": "positive", "shape": "extended"},
-    {"ticker": "DIS",   "name": "Walt Disney Co.",     "sector": "Communication Services", "industry": "Entertainment",                "price": 95.0,  "eps": 4.8,  "growth_rate": 0.10, "future_pe": 18.0, "fcf": "positive", "shape": "floor"},
-]
+# Screen cuts (documented in the dashboard's Screen tab).
+# Pass = meets BOTH cuts; Watch = meets exactly one. The Watchlist verdict keeps
+# its own PBT < 12y threshold in core.decision — these cuts are Screen-only.
+SCREEN_PBT_MAX = 10.0        # Cut A: Payback Time <= this many years
+SCREEN_FCF_YIELD_MIN = 0.05  # Cut B: FCF yield >= this (5%)
 
 _INDUSTRY_BY_SECTOR = {
     "Technology": "Consumer Electronics",
@@ -123,8 +114,14 @@ def _fundamentals(row: dict) -> dict:
     net_earnings = eps * shares
     net_earnings_yield = net_earnings / market_cap
     operating_earnings = net_earnings * float(rng.uniform(1.1, 1.45))
-    free_cashflow = net_earnings * float(rng.uniform(0.7, 1.2))
-    fcf_yield = free_cashflow / market_cap
+    if "fcf_yield" in row:
+        # The config carries a per-row FCF yield (powers the Screen's Cut B);
+        # derive free cash flow from it so the two stay consistent.
+        fcf_yield = float(row["fcf_yield"])
+        free_cashflow = fcf_yield * market_cap
+    else:
+        free_cashflow = net_earnings * float(rng.uniform(0.7, 1.2))
+        fcf_yield = free_cashflow / market_cap
     total_debt = market_cap * float(rng.uniform(0.05, 0.5))
     equity = market_cap * float(rng.uniform(0.3, 0.8))
     debt_to_equity = total_debt / equity
@@ -233,55 +230,39 @@ def _stock_object(row: dict, defaults: dict) -> dict:
     return obj
 
 
-def _tier(confirms: int) -> str:
-    if confirms >= 2:
-        return "strong"
-    if confirms == 1:
-        return "setting-up"
-    return "watching"
+# Confirmation tiers come from the signal engine (strong / setting-up / watching).
+_tier = sig.confirmation_tier
 
 
 def _technicals_for(ticker: str, shape: str) -> dict:
+    """Both directions of the timing lens for one name.
+
+    All booleans, tiers, and the overall ``timing`` verdict (REACHING FLOOR /
+    NEUTRAL / REACHING CEILING) are computed by ``core.signals.rail_checks`` —
+    the floor (buy) read is active near the lower channel rail, the ceiling
+    (sell/trim) read near the upper rail.
+    """
     highs, lows, closes = _ohlc(ticker, shape)
-    st = sig.stochastic(highs, lows, closes)
-    mac = sig.macd(closes)
-    sma50 = sig.sma(closes, 50)
-    ref = float(sma50[-1]) if not np.isnan(sma50[-1]) else float(np.mean(closes))
-    price = float(closes[-1])
-    ch = sig.linreg_channel(closes, period=100)
+    rc = sig.rail_checks(closes, highs=highs, lows=lows, channel_period=100)
     ch_long = sig.linreg_channel(closes, period=160)
 
-    stoch_pass = st["k"] < 20.0
-    stoch_sell = st["k"] > 80.0
-    macd_pass = mac["hist_change"] > 0.0
-    macd_sell = mac["hist_change"] < 0.0
-    ma_pass = price < ref
-    ma_sell = price > ref
-
-    position = float(ch["position"])
-    position_long = float(ch_long["position"])
-    at_lower_rail = position <= DIP_MAX
-    at_upper_rail = position >= 0.66
-
-    floor_confirms = sum([stoch_pass, macd_pass, ma_pass])
-    ceiling_confirms = sum([stoch_sell, macd_sell, ma_sell])
-
     return {
-        "stoch_k": round(float(st["k"]), 1),
-        "stoch_d": round(float(st["d"]), 1),
-        "stoch_pass": bool(stoch_pass),
-        "stoch_sell": bool(stoch_sell),
-        "macd_pass": bool(macd_pass),
-        "macd_sell": bool(macd_sell),
-        "ma_pass": bool(ma_pass),
-        "ma_sell": bool(ma_sell),
-        "at_lower_rail": bool(at_lower_rail),
-        "at_upper_rail": bool(at_upper_rail),
-        "channel_position": round(position, 4),
-        "channel_position_long": round(position_long, 4),
+        "stoch_k": round(rc["stoch_k"], 1),
+        "stoch_d": round(rc["stoch_d"], 1),
+        "stoch_pass": rc["stoch_pass"],
+        "stoch_sell": rc["stoch_sell"],
+        "macd_pass": rc["macd_pass"],
+        "macd_sell": rc["macd_sell"],
+        "ma_pass": rc["ma_pass"],
+        "ma_sell": rc["ma_sell"],
+        "at_lower_rail": rc["at_lower_rail"],
+        "at_upper_rail": rc["at_upper_rail"],
+        "channel_position": round(rc["channel_position"], 4),
+        "channel_position_long": round(float(ch_long["position"]), 4),
         "long_window": 160,
-        "tier": _tier(floor_confirms),
-        "ceiling_tier": _tier(ceiling_confirms),
+        "tier": rc["tier"],
+        "ceiling_tier": rc["ceiling_tier"],
+        "timing": rc["timing"],
     }
 
 
@@ -295,50 +276,47 @@ def emit_data(cfg: dict) -> list[dict]:
     return [_stock_object(r, defaults) for r in rows]
 
 
-def emit_exploration(cfg: dict) -> list[dict]:
-    """A wider generic universe, same schema as data.json."""
-    defaults = _defaults(cfg)
-    return [_stock_object(r, defaults) for r in EXPLORATION_UNIVERSE]
-
-
-def emit_technicals(rows: list[dict], universe_rows: list[dict]) -> dict:
+def emit_technicals(rows: list[dict]) -> dict:
     """technicals.json — per-ticker timing signal fields for every name shown."""
     signals: dict[str, dict] = {}
-    for r in list(rows) + list(universe_rows):
+    for r in rows:
         signals[r["ticker"]] = _technicals_for(r["ticker"], r.get("shape", "neutral"))
     return {"generated": GENERATED, "signals": signals}
 
 
-def emit_screen(data: list[dict], technicals: dict) -> dict:
-    """screen.json — dip/value screen: pass[] meets both cuts, watch[] exactly one."""
+def emit_screen(data: list[dict]) -> dict:
+    """screen.json — value screen: pass[] meets both cuts, watch[] exactly one.
+
+    Cut A: Payback Time <= SCREEN_PBT_MAX years.
+    Cut B: FCF yield >= SCREEN_FCF_YIELD_MIN.
+    """
     passed, watch = [], []
     universe = []
-    sigs = technicals["signals"]
     for obj in data:
         ticker = obj["ticker"]
         universe.append(ticker)
-        pos = sigs.get(ticker, {}).get("channel_position", 1.0)
         pbt = obj["verdict"]["payback_years"]
-        dip_ok = pos <= DIP_MAX
-        pbt_ok = pbt < PBT_CUT
+        fcf_yield = obj["fcf_yield"]
+        pbt_ok = pbt <= SCREEN_PBT_MAX
+        fcf_ok = fcf_yield >= SCREEN_FCF_YIELD_MIN
         entry = {
             "ticker": ticker,
             "name": obj["name"],
-            "channel_position": pos,
             "payback_years": pbt,
+            "fcf_yield": fcf_yield,
             "margin_of_safety": obj["verdict"]["margin_of_safety"],
-            "dip_ok": bool(dip_ok),
             "pbt_ok": bool(pbt_ok),
+            "fcf_ok": bool(fcf_ok),
         }
-        if dip_ok and pbt_ok:
+        if pbt_ok and fcf_ok:
             passed.append(entry)
-        elif dip_ok or pbt_ok:
+        elif pbt_ok or fcf_ok:
             watch.append(entry)
-    passed.sort(key=lambda e: e["channel_position"])
-    watch.sort(key=lambda e: e["channel_position"])
+    passed.sort(key=lambda e: e["payback_years"])
+    watch.sort(key=lambda e: e["payback_years"])
     return {
         "generated": GENERATED,
-        "criteria": {"dip_max": DIP_MAX, "pbt_cut": PBT_CUT},
+        "criteria": {"pbt_max": SCREEN_PBT_MAX, "fcf_yield_min": SCREEN_FCF_YIELD_MIN},
         "universe": universe,
         "pass": passed,
         "watch": watch,
@@ -392,15 +370,11 @@ def emit_macro() -> dict:
 
 def build_all(cfg: dict) -> dict:
     data = emit_data(cfg)
-    exploration = emit_exploration(cfg)
-    technicals = emit_technicals(
-        cfg.get("skill", {}).get("watchlist", []), EXPLORATION_UNIVERSE
-    )
-    screen = emit_screen(data + exploration, technicals)
+    technicals = emit_technicals(cfg.get("skill", {}).get("watchlist", []))
+    screen = emit_screen(data)
     macro = emit_macro()
     return {
         "data": data,
-        "exploration": exploration,
         "technicals": technicals,
         "screen": screen,
         "macro": macro,
@@ -413,7 +387,6 @@ def write_all(cfg: dict, sample_dir: Path = SAMPLE_DIR,
     bundle = build_all(cfg)
     sample_dir.mkdir(parents=True, exist_ok=True)
     (sample_dir / "data.json").write_text(json.dumps(bundle["data"], indent=2))
-    (sample_dir / "exploration.json").write_text(json.dumps(bundle["exploration"], indent=2))
     (sample_dir / "technicals.json").write_text(json.dumps(bundle["technicals"], indent=2))
     (sample_dir / "screen.json").write_text(json.dumps(bundle["screen"], indent=2))
     (sample_dir / "macro_data.json").write_text(json.dumps(bundle["macro"], indent=2))
@@ -436,12 +409,14 @@ def main(argv=None) -> int:
 
     buys = sum(1 for d in bundle["data"] if d["verdict"]["verdict"] == "BUY")
     passes = sum(1 for d in bundle["data"] if d["verdict"]["verdict"] == "PASS")
-    floors = sum(1 for t in bundle["technicals"]["signals"].values()
-                 if t["tier"] == "strong")
+    techs = bundle["technicals"]["signals"].values()
+    floors = sum(1 for t in techs if t["timing"] == "REACHING FLOOR")
+    ceilings = sum(1 for t in techs if t["timing"] == "REACHING CEILING")
+    screen = bundle["screen"]
     print(f"wrote sample-data/*.json + core/dashboard/data.js")
     print(f"  watchlist: {len(bundle['data'])} names · {buys} BUY · {passes} PASS")
-    print(f"  exploration: {len(bundle['exploration'])} names")
-    print(f"  strong-floor (2+/3 confirms): {floors}")
+    print(f"  screen: {len(screen['pass'])} pass · {len(screen['watch'])} watch")
+    print(f"  timing: {floors} reaching floor · {ceilings} reaching ceiling")
     return 0
 
 

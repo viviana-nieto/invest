@@ -13,6 +13,7 @@ parallel LLM agents only narrate. Two lenses of one tool —
 ## Usage
 
 ```
+/invest ask "<plain-language question>"
 /invest dashboard
 /invest screen [--sort margin_of_safety|payback_years]
 /invest signals
@@ -22,6 +23,7 @@ parallel LLM agents only narrate. Two lenses of one tool —
 
 Examples:
 ```
+/invest ask "which stocks are worth buying and why?"
 /invest dashboard
 /invest screen
 /invest signals
@@ -32,6 +34,38 @@ Examples:
 All paths below are **repo-relative** — run them from the skill's repo root.
 
 ---
+
+## Access — anyone on your team can just ask
+
+This skill is one of **three front doors to the same deterministic engine**,
+so a non-technical teammate never needs special commands:
+
+- **Plain language**: `python3 -m orchestration.ask "which stocks are worth
+  buying and why?"` — an LLM (or, with `--no-llm`, a deterministic keyword
+  router) *only routes* the question to one of four engine tools; the answer is
+  always the engine's verdict plus its evidence (criteria met/failed, with
+  numbers). Never a bare opinion.
+- **Their existing tools**: `adapters/mcp/server.py` drops the engine into
+  Claude Desktop / Cursor / any MCP chat as `screen_watchlist`,
+  `analyze_ticker`, `floor_signals`, `price_option` (see `adapters/mcp/README.md`).
+- **This skill** for Claude Code users.
+
+The governance rule holds on every door: **the LLM routes; the engine decides.**
+
+## Subcommand: `ask` — plain-language questions
+
+Answer any free-form question by running the front door and relaying its
+evidence-backed output verbatim (it already contains the verdict + criteria):
+
+```bash
+python3 -m orchestration.ask --no-llm "<the user's question>"
+```
+
+Handles: "what should I buy / screen the list", "analyze TICKER", "is TICKER
+reaching a floor / when do I buy", "price a call/put on TICKER strike X
+expiring in N months". With `LLM_PROVIDER` set the routing goes through the
+model instead of keywords — the answer is identical because the engine, not the
+router, computes it.
 
 ## Subcommand: `screen` — Part 1, the VALUE lens
 
@@ -73,9 +107,10 @@ series offline). Feed them to `core.signals.timing_signals(closes, highs, lows)`
 
 Generate the sample JSON contract and open the self-contained, multi-tab
 **equity decision terminal** (`core/dashboard/index.html`): a Watchlist with the
-signature **Signal** column + expandable BUY/WATCH/PASS evidence trails, a dip/value
-**Screen**, the **Signals** timing lens, a live-in-browser **Options Pricing**
-(Black-Scholes) tab, a **Macro** snapshot, and a wider **Exploration** universe.
+signature **Signal** column + expandable BUY/WATCH/PASS evidence trails, a value
+**Screen** (Payback&nbsp;≤&nbsp;10y **and** FCF&nbsp;yield&nbsp;≥&nbsp;5%), the **Signals**
+timing lens, a live-in-browser **Options Pricing** (Black-Scholes) tab, and a
+**Macro** snapshot.
 
 ```bash
 python3 -m core.emit                    # writes sample-data/*.json + core/dashboard/data.js
@@ -137,6 +172,33 @@ the engine returns intrinsic value.
 3. `dashboard` — both lenses in the multi-tab terminal. The best setups are
    where a BUY meets a REACHING FLOOR (the 🟢 tier in the Signal column).
 4. `news` — parallel agents add narrative colour; they never move a verdict.
+
+## How growth is computed (live data)
+
+When fetching live data for a ticker, `growth_rate` comes from
+`core.fundamentals.earnings_cagr_growth(ticker)` — the **historical annual
+operating-income (EBIT) CAGR**, not a guess:
+
+- Series: annual operating income oldest → newest, last 10 fiscal years.
+  SEC EDGAR preferred (10+ yrs of 10-Ks), yfinance `income_stmt` fallback (~4 yrs).
+- `growth_rate = max(0, (last/first)**(1/n) - 1)` — full-window CAGR,
+  **floored at 0**; label `"{n}yr CAGR"`, plus trailing `cagr_periods`
+  (10/7/5/3/1-yr windows).
+- Special cases: losses → profit = **Turnaround** (analyst forward estimate if
+  positive, else 0); profit → losses = **Declining** (0); persistent losses =
+  annual loss-reduction rate or 0.
+
+Precedence per watchlist row: **config manual override** (a numeric
+`growth_rate` in `config.json`, never touched) > **computed CAGR** >
+**`skill.default_growth_rate`** (default 0.0). To overlay live prices *and*
+growth in one call:
+
+```bash
+python3 -c "from core.screen import load_config, _resolve_config, screen; from core.fetch_prices import enrich_config_with_live_data; import json; print(json.dumps(screen(enrich_config_with_live_data(load_config(_resolve_config(None)))), indent=2))"
+```
+
+Offline (no yfinance / no network) nothing changes: the sample `growth_rate`
+values in the config act as the override and the engine runs as before.
 
 ## Notes
 

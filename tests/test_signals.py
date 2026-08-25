@@ -117,3 +117,93 @@ def test_signals_default_highs_lows_to_closes():
     t = s.timing_signals(closes)
     assert t["total"] == 4
     assert len(t["signals"]) == 4
+
+
+# ---- ceiling (sell/trim) mirror + combined timing verdict -------------------
+
+
+CEILING_FIELDS = [
+    "stoch_sell", "macd_sell", "ma_sell", "at_upper_rail",
+    "ceiling_confirms", "ceiling_tier",
+]
+
+
+def _ceiling_series():
+    """A persistent uptrend that blows off then eases once — overbought
+    stochastic, MACD histogram rolling over, price pressed above the upper
+    linreg rail. The synthetic mirror of `_floor_series`."""
+    closes = np.linspace(70.0, 108.0, 160)
+    closes[-12:] += np.linspace(0.0, 8.0, 12)   # blow-off top
+    closes[-1] = closes[-2] - 0.5               # final easing (MACD rolls over)
+    highs = closes * 1.005
+    lows = closes * 0.995
+    return highs, lows, closes
+
+
+def test_rail_checks_produces_all_ceiling_fields():
+    highs, lows, closes = _ceiling_series()
+    rc = s.rail_checks(closes, highs=highs, lows=lows)
+    for k in CEILING_FIELDS:
+        assert k in rc, f"rail_checks missing {k}"
+    for b in ("stoch_sell", "macd_sell", "ma_sell", "at_upper_rail", "at_lower_rail"):
+        assert isinstance(rc[b], bool)
+    assert rc["ceiling_tier"] in ("strong", "setting-up", "watching")
+    assert rc["timing"] in ("REACHING FLOOR", "NEUTRAL", "REACHING CEILING")
+
+
+def test_blowoff_top_is_reaching_ceiling():
+    highs, lows, closes = _ceiling_series()
+    rc = s.rail_checks(closes, highs=highs, lows=lows)
+    assert rc["timing"] == "REACHING CEILING"
+    assert rc["at_upper_rail"] is True and rc["at_lower_rail"] is False
+    assert rc["stoch_sell"] is True          # overbought (%K > 80)
+    assert rc["macd_sell"] is True           # histogram rolling over
+    assert rc["ceiling_confirms"] >= 2
+    assert rc["ceiling_tier"] == "strong"
+    # Still riding above its SMA50 — the 50-day is not yet lost.
+    assert rc["ma_sell"] is False
+
+
+def test_capitulation_is_reaching_floor_in_rail_checks():
+    highs, lows, closes = _floor_series()
+    rc = s.rail_checks(closes, highs=highs, lows=lows)
+    assert rc["timing"] == "REACHING FLOOR"
+    assert rc["at_lower_rail"] is True and rc["at_upper_rail"] is False
+    assert rc["stoch_pass"] is True          # oversold (%K < 20)
+    assert rc["macd_pass"] is True           # histogram turning up
+    assert rc["floor_confirms"] >= 2
+    assert rc["tier"] == "strong"
+
+
+def test_oscillation_is_neutral_in_rail_checks():
+    x = np.linspace(0.0, 6.0 * np.pi, 160)
+    osc = 100.0 + 5.0 * np.sin(x)
+    rc = s.rail_checks(osc, highs=osc * 1.004, lows=osc * 0.996)
+    assert rc["timing"] == "NEUTRAL"
+
+
+def test_rails_are_mutually_exclusive():
+    # DIP_MAX < CEILING_MIN, so no position can trip both rails.
+    assert s.DIP_MAX < s.CEILING_MIN
+    for series in (_floor_series(), _ceiling_series()):
+        highs, lows, closes = series
+        rc = s.rail_checks(closes, highs=highs, lows=lows)
+        assert not (rc["at_lower_rail"] and rc["at_upper_rail"])
+
+
+def test_confirmation_tier_thresholds():
+    assert s.confirmation_tier(3) == "strong"
+    assert s.confirmation_tier(2) == "strong"
+    assert s.confirmation_tier(1) == "setting-up"
+    assert s.confirmation_tier(0) == "watching"
+
+
+def test_floor_side_of_rail_checks_matches_timing_signals():
+    # The floor booleans inside rail_checks must agree with the floor-only lens.
+    highs, lows, closes = _floor_series()
+    rc = s.rail_checks(closes, highs=highs, lows=lows)
+    t = s.timing_signals(closes, highs=highs, lows=lows)
+    by_name = {x["name"]: x["met"] for x in t["signals"]}
+    assert rc["stoch_pass"] == by_name["Stochastic 14,5,3"]
+    assert rc["macd_pass"] == by_name["MACD 8,17,9"]
+    assert rc["ma_pass"] == by_name["Price vs SMA50"]
