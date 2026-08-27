@@ -46,15 +46,6 @@
   ],
   "watch": [
     {
-      "ticker": "NVDA",
-      "name": "NVIDIA Corp.",
-      "payback_years": 9.46,
-      "fcf_yield": 0.02,
-      "margin_of_safety": 0.5975,
-      "pbt_ok": true,
-      "fcf_ok": false
-    },
-    {
       "ticker": "GOOGL",
       "name": "Alphabet Inc.",
       "payback_years": 10.0,

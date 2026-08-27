@@ -50,7 +50,7 @@ def test_decide_valuation_buy_all_pass():
     # sticker=150, buy<=75, price 70 => MoS positive; payback short; FCF positive.
     v = Valuation(ticker="T", price=70.0, eps=10.0, growth_rate=0.15,
                   future_pe=15.0, years=10, required_return=0.15, margin=0.50)
-    d = decide_valuation(v, fcf_positive=True, narrative="hi")
+    d = decide_valuation(v, fcf_yield=0.05, narrative="hi")
     assert d["verdict"] == "BUY"
     assert [c["passed"] for c in d["criteria"]] == [True, True, True]
     assert d["narrative"] == "hi"
@@ -59,8 +59,9 @@ def test_decide_valuation_buy_all_pass():
 def test_decide_valuation_fcf_flips_buy_to_watch():
     v = Valuation(ticker="T", price=70.0, eps=10.0, growth_rate=0.15,
                   future_pe=15.0, years=10, required_return=0.15, margin=0.50)
-    d = decide_valuation(v, fcf_positive=False)
-    # Payback + MoS still pass, but FCF now fails => exactly 2 => WATCH.
+    d = decide_valuation(v, fcf_yield=-0.01)
+    # Payback + MoS still pass, but a negative FCF yield sits under the
+    # default 0 floor => exactly 2 => WATCH.
     assert d["verdict"] == "WATCH"
 
 
@@ -69,7 +70,7 @@ def test_decide_valuation_pass_when_overpriced():
     # => exactly 1 criterion => PASS.
     v = Valuation(ticker="T", price=500.0, eps=10.0, growth_rate=0.15,
                   future_pe=15.0, years=10, required_return=0.15, margin=0.50)
-    d = decide_valuation(v, fcf_positive=True)
+    d = decide_valuation(v, fcf_yield=0.05)
     assert d["margin_of_safety"] < 0
     assert d["payback_years"] > 12
     assert d["verdict"] == "PASS"
@@ -78,8 +79,8 @@ def test_decide_valuation_pass_when_overpriced():
 def test_criteria_thresholds_and_values_shape():
     v = Valuation(ticker="T", price=70.0, eps=10.0, growth_rate=0.15,
                   future_pe=15.0, years=10, required_return=0.15, margin=0.50)
-    names = [c["name"] for c in decide_valuation(v, True)["criteria"]]
-    assert names == ["Payback Time", "Margin of Safety", "Free Cash Flow"]
+    names = [c["name"] for c in decide_valuation(v, 0.05)["criteria"]]
+    assert names == ["Payback Time", "Margin of Safety", "Free Cash Flow yield"]
 
 
 # ---- conviction is monotonic ------------------------------------------------

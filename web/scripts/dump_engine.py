@@ -32,12 +32,12 @@ from scipy.stats import norm  # noqa: E402
 
 from core import emit  # noqa: E402
 from core import signals as sig  # noqa: E402
-from core.decision import (_fcf_positive, build_decision,  # noqa: E402
-                           decide_valuation, stocks_from_config)
+from core.decision import (build_decision, decide_valuation,  # noqa: E402
+                           decision_thresholds, stocks_from_config)
 from core.options import (black_scholes_call, black_scholes_put,  # noqa: E402
                           delta, price_option)
-from core.screen import _defaults, load_config, screen  # noqa: E402
-from core.valuation import Valuation  # noqa: E402
+from core.screen import (_defaults, load_config, screen,  # noqa: E402
+                         valuation_from_row)
 
 OUT = WEB / "engine" / "__tests__" / "fixtures.json"
 
@@ -49,6 +49,7 @@ def _flist(a) -> list[float]:
 def main() -> int:
     cfg = load_config(ROOT / "config.example.json")
     d = _defaults(cfg)
+    t = decision_thresholds(cfg)
     rows = cfg["skill"]["watchlist"]
 
     # --- shared inputs: deterministic OHLC series per ticker (crc32-seeded,
@@ -66,16 +67,9 @@ def main() -> int:
     # --- valuation + decision expectations per ticker.
     valuations: dict[str, dict] = {}
     for row in rows:
-        v = Valuation(
-            ticker=row["ticker"],
-            price=row["price"],
-            eps=row["eps"],
-            growth_rate=row["growth_rate"],
-            future_pe=row.get("future_pe", d["default_future_pe"]),
-            years=d["years"],
-            required_return=d["required_return"],
-            margin=d["margin"],
-        )
+        # The shared adapter caps the growth the valuation trusts (the TS side
+        # mirrors this via valuationFromRow + configDefaults).
+        v = valuation_from_row(row, d)
         valuations[row["ticker"]] = {
             "raw": {
                 "payback_years": v.payback_years,
@@ -85,7 +79,7 @@ def main() -> int:
             },
             "dict": v.to_dict(),
             "decision": decide_valuation(
-                v, _fcf_positive(row.get("fcf", "positive")), row.get("narrative", "")
+                v, row.get("fcf_yield", 0), row.get("narrative", ""), t
             ),
         }
 
@@ -95,7 +89,8 @@ def main() -> int:
     for s in stocks_from_config(cfg):
         ser = series[s.ticker]
         decisions.append(build_decision(s, series=(
-            np.array(ser["highs"]), np.array(ser["lows"]), np.array(ser["closes"]))))
+            np.array(ser["highs"]), np.array(ser["lows"]), np.array(ser["closes"])),
+            thresholds=t))
     decisions.sort(key=lambda dd: (
         -dd["valuation"]["conviction"],
         -dd["valuation"]["margin_of_safety"],
@@ -126,7 +121,7 @@ def main() -> int:
             "ticker": row["ticker"],
             "name": row.get("name", row["ticker"]),
             "fcf_yield": row["fcf_yield"],
-            "verdict": emit._verdict_block(row, d),
+            "verdict": emit._verdict_block(row, d, t),
         })
     screen_expected = {
         "by_mos": screen(cfg, sort_by="margin_of_safety"),

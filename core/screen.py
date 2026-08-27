@@ -8,6 +8,7 @@ same inputs always produce the same ordering, so the engine makes the call.
 from __future__ import annotations
 
 import json
+import math
 from pathlib import Path
 
 from .valuation import Valuation
@@ -16,12 +17,17 @@ from .valuation import Valuation
 def _defaults(cfg: dict) -> dict:
     """Pull global valuation assumptions from the config's skill block."""
     skill = cfg.get("skill", {})
+    cap = skill.get("valuation_growth_cap")
+    if not isinstance(cap, (int, float)) or isinstance(cap, bool) or cap <= 0:
+        # A non-finite / non-positive / absent cap means "don't cap".
+        cap = math.inf
     return {
         "years": skill.get("projection_years", 10),
         "required_return": skill.get("required_return", 0.15),
         "margin": skill.get("margin_of_safety", 0.50),
         "default_future_pe": skill.get("default_future_pe", 15.0),
         "default_growth": skill.get("default_growth_rate", 0.0),
+        "valuation_growth_cap": cap,
     }
 
 
@@ -36,24 +42,32 @@ def _resolve_growth(row: dict, d: dict) -> float:
     return g if isinstance(g, (int, float)) else d["default_growth"]
 
 
+def valuation_from_row(row: dict, d: dict) -> Valuation:
+    """Build a Valuation for one config row using the global defaults.
+
+    The growth the valuation trusts is capped at `valuation_growth_cap`: a
+    60%/yr grower compounded 10 years is 108x, which would mint an absurd
+    sticker price — the cap keeps fair value sane. Only the sticker / payback /
+    margin-of-safety math sees the capped rate; the row's own `growth_rate`
+    (the true historical CAGR shown in the watchlist) is untouched.
+    """
+    return Valuation(
+        ticker=row["ticker"],
+        price=row["price"],
+        eps=row["eps"],
+        growth_rate=min(_resolve_growth(row, d), d["valuation_growth_cap"]),
+        future_pe=row.get("future_pe", d["default_future_pe"]),
+        years=d["years"],
+        required_return=d["required_return"],
+        margin=d["margin"],
+    )
+
+
 def valuations_from_config(cfg: dict) -> list[Valuation]:
     """Build a Valuation for every ticker in the config's watchlist."""
     d = _defaults(cfg)
-    out: list[Valuation] = []
-    for row in cfg.get("skill", {}).get("watchlist", []):
-        out.append(
-            Valuation(
-                ticker=row["ticker"],
-                price=row["price"],
-                eps=row["eps"],
-                growth_rate=_resolve_growth(row, d),
-                future_pe=row.get("future_pe", d["default_future_pe"]),
-                years=d["years"],
-                required_return=d["required_return"],
-                margin=d["margin"],
-            )
-        )
-    return out
+    return [valuation_from_row(row, d)
+            for row in cfg.get("skill", {}).get("watchlist", [])]
 
 
 def screen(cfg: dict, sort_by: str = "margin_of_safety") -> list[dict]:

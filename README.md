@@ -35,7 +35,7 @@ the news; the deterministic engine makes the call.
 ## What this does
 
 - **VALUE lens — BUY/WATCH/PASS verdicts + ranking.** Scores every name against three
-  deterministic criteria (Payback&nbsp;Time&nbsp;<&nbsp;12y · Margin&nbsp;of&nbsp;Safety&nbsp;>&nbsp;0 · positive&nbsp;FCF):
+  deterministic criteria (Payback&nbsp;Time&nbsp;<&nbsp;12y · Margin&nbsp;of&nbsp;Safety&nbsp;>&nbsp;0 · FCF&nbsp;yield&nbsp;≥&nbsp;0%):
   all 3 pass → BUY, exactly 2 → WATCH, ≤1 → PASS. Ranks the universe by a conviction
   score derived from the margin of safety. Same inputs, same ranking, every time.
 - **TIMING lens — floor detection.** Converges four independent signals from a price
@@ -77,8 +77,8 @@ same job, so `ask` works with zero LLM. Either way, every answer is
 
 ```
 $ python3 -m orchestration.ask --no-llm "what should I buy?"
- #1 NVDA  BUY   (conviction 65)  ✓ Payback Time 9.5y (need < 12y) · ✓ Margin of Safety +60% (need > 0) · ✓ FCF positive ...
- #2 AMZN  BUY   (conviction 53)  ✓ Payback Time 11.2y (need < 12y) · ✓ Margin of Safety +13% (need > 0) · ✓ FCF positive ...
+ #1 NVDA  BUY   (conviction 60)  ✓ Payback Time 10.6y (need < 12y) · ✓ Margin of Safety +40% (need > 0) · ✓ Free Cash Flow yield 2.0% (need ≥ 0%) ...
+ #2 NKE   BUY   (conviction 54)  ✓ Payback Time 9.6y (need < 12y) · ✓ Margin of Safety +17% (need > 0) · ✓ Free Cash Flow yield 5.5% (need ≥ 0%) ...
  ...
 ⚙ engine decides · 🤖 agents narrate
 ```
@@ -179,13 +179,31 @@ Config lives in `config.json` (gitignored; copy from `config.example.json`).
 | `skill.margin_of_safety` | Discount below sticker price to buy | `0.50` |
 | `skill.default_future_pe` | Fallback future P/E when a row omits one | `15.0` |
 | `skill.default_growth_rate` | Fallback growth when a row omits `growth_rate` and no live CAGR is available | `0.0` |
-| `skill.watchlist[]` | `{ticker, name, sector, price, eps, growth_rate, future_pe, fcf, shape, narrative}` rows | mega-caps |
+| `skill.valuation_growth_cap` | Ceiling on the growth the valuation trusts (see below) | `0.25` |
+| `skill.payback_max_years` | Verdict's Payback Time ceiling | `12` |
+| `skill.fcf_yield_min` | Verdict's FCF-yield floor, as a fraction | `0.0` |
+| `skill.watchlist[]` | `{ticker, name, sector, price, eps, growth_rate, future_pe, fcf, fcf_yield, shape, narrative}` rows | mega-caps |
 
 Watchlist rows add a few fields for the two lenses: `name`/`sector` label the card,
-`fcf` (`"positive"`/`"negative"`) is the third value criterion, `shape`
+`fcf_yield` (a fraction) is the third value criterion and the Screen's Cut B, `shape`
 (`floor`/`neutral`/`extended`) selects the offline sample OHLC series for the timing
 lens, and `narrative` is the canned **agent voice** sample — the LLM's one-liner that
 sits beside a verdict the math already made.
+
+### Tunable thresholds
+
+Three `skill` keys move the deterministic math without touching code:
+
+- **`valuation_growth_cap`** (default `0.25`) — caps the growth rate the
+  sticker-price / payback / margin-of-safety math trusts. A 60%/yr grower
+  compounded 10 years is 108×, which would mint an absurd sticker; the cap
+  keeps fair value sane. The **displayed** growth stays the true CAGR — only
+  the valuation uses the capped rate. Set it `<= 0` (or omit it) to uncap.
+- **`payback_max_years`** (default `12`) — the verdict's Payback Time
+  criterion passes when payback is under this many years.
+- **`fcf_yield_min`** (default `0.0`) — the verdict's Free Cash Flow yield
+  criterion passes when the row's `fcf_yield` is at or above this floor
+  (`0` = "positive"; `0.05` = require a 5% yield).
 
 ### How growth is computed
 

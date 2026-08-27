@@ -27,9 +27,9 @@ import {
   buildDecisions,
   configDefaults,
   decideValuation,
+  decisionThresholds,
   delta,
   emitScreen,
-  fcfPositive,
   normCdf,
   priceOption,
   railChecks,
@@ -114,7 +114,9 @@ test("valuation parity: payback, sticker, buy price, margin of safety (9 tickers
 test("decision parity: BUY/WATCH/PASS verdict, conviction, evidence criteria", () => {
   for (const row of rows) {
     const v = tsValuation(row.ticker);
-    const block = decideValuation(v, fcfPositive(row.fcf ?? "positive"), row.narrative ?? "");
+    const block = decideValuation(
+      v, (row.fcf_yield as number) ?? 0, row.narrative ?? "", decisionThresholds(cfg),
+    );
     assertParity(block, expected.valuations[row.ticker].decision, `${row.ticker}.decision`);
   }
 });
@@ -207,8 +209,9 @@ test("screen parity: pass/watch cuts (PBT <= 10y AND FCF yield >= 5%)", () => {
     fcf_yield: row.fcf_yield as number,
     verdict: decideValuation(
       valuationFromRow(row, d),
-      fcfPositive(row.fcf ?? "positive"),
+      (row.fcf_yield as number) ?? 0,
       row.narrative ?? "",
+      decisionThresholds(cfg),
     ),
   }));
   const result = emitScreen(minimal);

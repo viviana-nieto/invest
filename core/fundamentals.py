@@ -54,7 +54,7 @@ DEFAULT_GROWTH_RATE = 0.0
 # SEC EDGAR: free historical XBRL data, no API key. EDGAR requires a
 # descriptive "name contact-email" User-Agent identifying the client, or it
 # returns 403 (https://www.sec.gov/os/accessing-edgar-data). Bring your own:
-# set SEC_EDGAR_USER_AGENT="Your Name your@email.com". The placeholder below is
+# set SEC_EDGAR_USER_AGENT="Your Name you@example.com". The placeholder below is
 # only so the module imports; it will be rejected by SEC until you set yours.
 _SEC_HEADERS = {
     "User-Agent": os.environ.get(

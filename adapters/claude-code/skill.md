@@ -77,7 +77,7 @@ python3 -m core.screen --decisions
 ```
 
 Each decision object carries `valuation.verdict`, `valuation.conviction`, the
-`criteria` checklist (Payback&nbsp;Time&nbsp;<&nbsp;12y · Margin&nbsp;of&nbsp;Safety&nbsp;>&nbsp;0 · positive&nbsp;FCF),
+`criteria` checklist (Payback&nbsp;Time&nbsp;<&nbsp;12y · Margin&nbsp;of&nbsp;Safety&nbsp;>&nbsp;0 · FCF&nbsp;yield&nbsp;≥&nbsp;0%),
 and an agent `narrative`. Verdict logic is deterministic: **all 3 pass → BUY**,
 **exactly 2 → WATCH**, **≤1 → PASS**.
 
@@ -199,6 +199,18 @@ python3 -c "from core.screen import load_config, _resolve_config, screen; from c
 
 Offline (no yfinance / no network) nothing changes: the sample `growth_rate`
 values in the config act as the override and the engine runs as before.
+
+## Tunable thresholds
+
+Three `skill` keys in the config move the deterministic math:
+
+- `valuation_growth_cap` (default `0.25`) — caps the growth rate the
+  sticker/payback/margin-of-safety math trusts (a 60%/yr grower compounded 10y
+  is 108× — an absurd sticker). The displayed growth stays the true CAGR; only
+  the valuation is capped. `<= 0` or absent = uncapped.
+- `payback_max_years` (default `12`) — the verdict's Payback Time ceiling.
+- `fcf_yield_min` (default `0.0`) — the verdict's FCF-yield floor as a
+  fraction (`0` = "positive"; `0.05` = require a 5% yield).
 
 ## Notes
 

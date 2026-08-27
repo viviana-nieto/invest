@@ -18,8 +18,37 @@ import { pyFixed, pyRound } from "./pyformat.ts";
 import { Valuation } from "./valuation.ts";
 
 export const PAYBACK_MAX_YEARS = 12.0;
+/** Default FCF-yield floor for the BUY/WATCH/PASS verdict (0 = "positive"). */
+export const FCF_YIELD_MIN = 0.0;
 
 export type Verdict = "BUY" | "WATCH" | "PASS";
+
+/**
+ * The tunable pass/fail thresholds behind the verdict. Defaults reproduce the
+ * classic rule (payback < 12y, positive FCF); the terminal's Advanced settings
+ * let a visitor move them.
+ */
+export interface DecisionThresholds {
+  paybackMaxYears: number;
+  /** FCF-yield floor as a fraction (0.05 = 5%). */
+  fcfYieldMin: number;
+}
+
+export const DEFAULT_THRESHOLDS: DecisionThresholds = {
+  paybackMaxYears: PAYBACK_MAX_YEARS,
+  fcfYieldMin: FCF_YIELD_MIN,
+};
+
+/** Read the verdict thresholds from a config's skill block, with safe defaults. */
+export function decisionThresholds(cfg: Config): DecisionThresholds {
+  const skill = cfg.skill ?? {};
+  const pbt = skill.payback_max_years;
+  const fcf = skill.fcf_yield_min;
+  return {
+    paybackMaxYears: typeof pbt === "number" && pbt > 0 ? pbt : PAYBACK_MAX_YEARS,
+    fcfYieldMin: typeof fcf === "number" ? fcf : FCF_YIELD_MIN,
+  };
+}
 
 /**
  * Normalise a config `fcf` field to a boolean. Accepts 'positive'/'negative'
@@ -52,17 +81,21 @@ export interface Criterion {
 
 /**
  * The three-item evidence checklist for a valuation, each with value,
- * threshold, and a deterministic pass/fail.
+ * threshold, and a deterministic pass/fail. `fcfYield` is a fraction; the
+ * thresholds default to the classic rule when omitted.
  */
-export function valuationCriteria(v: Valuation, fcfPos: boolean): Criterion[] {
+export function valuationCriteria(
+  v: Valuation, fcfYield: number, thresholds: DecisionThresholds = DEFAULT_THRESHOLDS,
+): Criterion[] {
   const pbt = v.paybackYears;
   const mos = v.marginOfSafety;
+  const { paybackMaxYears, fcfYieldMin } = thresholds;
   return [
     {
       name: "Payback Time",
       value: `${pyFixed(pbt, 1)}y`,
-      threshold: `< ${pyFixed(PAYBACK_MAX_YEARS, 0)}y`,
-      passed: pbt < PAYBACK_MAX_YEARS,
+      threshold: `< ${pyFixed(paybackMaxYears, 0)}y`,
+      passed: pbt < paybackMaxYears,
     },
     {
       name: "Margin of Safety",
@@ -71,10 +104,10 @@ export function valuationCriteria(v: Valuation, fcfPos: boolean): Criterion[] {
       passed: mos > 0.0,
     },
     {
-      name: "Free Cash Flow",
-      value: fcfPos ? "positive" : "negative",
-      threshold: "positive",
-      passed: fcfPos,
+      name: "Free Cash Flow yield",
+      value: `${pyFixed(fcfYield * 100, 1)}%`,
+      threshold: `≥ ${pyFixed(fcfYieldMin * 100, fcfYieldMin === 0 ? 0 : 1)}%`,
+      passed: fcfYield >= fcfYieldMin,
     },
   ];
 }
@@ -100,9 +133,10 @@ export interface ValuationDecision {
 
 /** Build the `valuation` decision block for one stock. */
 export function decideValuation(
-  v: Valuation, fcfPos: boolean, narrative: string = "",
+  v: Valuation, fcfYield: number, narrative: string = "",
+  thresholds: DecisionThresholds = DEFAULT_THRESHOLDS,
 ): ValuationDecision {
-  const criteria = valuationCriteria(v, fcfPos);
+  const criteria = valuationCriteria(v, fcfYield, thresholds);
   return {
     verdict: verdictFromCriteria(criteria),
     conviction: convictionFromMos(v.marginOfSafety),
@@ -140,6 +174,12 @@ export interface Config {
     required_return?: number;
     margin_of_safety?: number;
     default_future_pe?: number;
+    /** Ceiling on the growth the valuation trusts (display growth is untouched). */
+    valuation_growth_cap?: number;
+    /** Verdict thresholds (watchlist BUY/WATCH/PASS). */
+    payback_max_years?: number;
+    /** FCF-yield floor as a fraction (0.05 = 5%). */
+    fcf_yield_min?: number;
     watchlist?: ConfigRow[];
     [key: string]: unknown;
   };
@@ -154,6 +194,8 @@ export interface Stock {
   price: number;
   valuation: Valuation;
   fcfPositive: boolean;
+  /** FCF yield as a fraction — the value the verdict's FCF criterion tests. */
+  fcfYield: number;
   narrative: string;
   /** timing sample-series shape: floor | neutral | extended */
   shape: string;
@@ -164,26 +206,35 @@ export interface ValuationDefaults {
   requiredReturn: number;
   margin: number;
   defaultFuturePe: number;
+  /** Ceiling on the growth the valuation trusts (Infinity = uncapped). */
+  valuationGrowthCap: number;
 }
 
 /** Pull global valuation assumptions from the config's skill block. */
 export function configDefaults(cfg: Config): ValuationDefaults {
   const skill = cfg.skill ?? {};
+  const cap = skill.valuation_growth_cap;
   return {
     years: skill.projection_years ?? 10,
     requiredReturn: skill.required_return ?? 0.15,
     margin: skill.margin_of_safety ?? 0.50,
     defaultFuturePe: skill.default_future_pe ?? 15.0,
+    // A non-finite / non-positive cap means "don't cap" (uncapped valuation).
+    valuationGrowthCap: typeof cap === "number" && cap > 0 ? cap : Infinity,
   };
 }
 
-/** Build a Valuation for one config row using the global defaults. */
+/**
+ * Build a Valuation for one config row using the global defaults. The growth
+ * the valuation trusts is capped at `valuationGrowthCap`; the row's own
+ * `growth_rate` (the true historical CAGR shown in the watchlist) is untouched.
+ */
 export function valuationFromRow(row: ConfigRow, d: ValuationDefaults): Valuation {
   return new Valuation({
     ticker: row.ticker,
     price: row.price,
     eps: row.eps,
-    growthRate: row.growth_rate,
+    growthRate: Math.min(row.growth_rate, d.valuationGrowthCap),
     futurePe: row.future_pe ?? d.defaultFuturePe,
     years: d.years,
     requiredReturn: d.requiredReturn,
@@ -202,6 +253,7 @@ export function stocksFromConfig(cfg: Config): Stock[] {
     price: row.price,
     valuation: valuationFromRow(row, d),
     fcfPositive: fcfPositive(row.fcf ?? "positive"),
+    fcfYield: typeof row.fcf_yield === "number" ? row.fcf_yield : 0,
     narrative: row.narrative ?? "",
     shape: row.shape ?? "neutral",
   }));

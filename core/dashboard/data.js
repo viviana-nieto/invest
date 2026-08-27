@@ -545,32 +545,32 @@ window.INVEST_DATA = {
       "volatility_1yr": 0.2722,
       "verdict": {
         "verdict": "BUY",
-        "conviction": 65,
+        "conviction": 60,
         "criteria": [
           {
             "name": "Payback Time",
-            "value": "9.5y",
+            "value": "10.6y",
             "threshold": "< 12y",
             "passed": true
           },
           {
             "name": "Margin of Safety",
-            "value": "+60%",
+            "value": "+40%",
             "threshold": "> 0",
             "passed": true
           },
           {
-            "name": "Free Cash Flow",
-            "value": "positive",
-            "threshold": "positive",
+            "name": "Free Cash Flow yield",
+            "value": "2.0%",
+            "threshold": "\u2265 0%",
             "passed": true
           }
         ],
         "narrative": "Agents flag accelerating datacenter demand; the discount to sticker reads as the market pricing a cyclical pause, not a broken thesis.",
-        "payback_years": 9.46,
-        "sticker_price": 298.17,
-        "buy_price": 149.08,
-        "margin_of_safety": 0.5975
+        "payback_years": 10.55,
+        "sticker_price": 201.43,
+        "buy_price": 100.72,
+        "margin_of_safety": 0.4043
       }
     },
     {
@@ -1133,9 +1133,9 @@ window.INVEST_DATA = {
             "passed": true
           },
           {
-            "name": "Free Cash Flow",
-            "value": "positive",
-            "threshold": "positive",
+            "name": "Free Cash Flow yield",
+            "value": "5.5%",
+            "threshold": "\u2265 0%",
             "passed": true
           }
         ],
@@ -1706,9 +1706,9 @@ window.INVEST_DATA = {
             "passed": true
           },
           {
-            "name": "Free Cash Flow",
-            "value": "positive",
-            "threshold": "positive",
+            "name": "Free Cash Flow yield",
+            "value": "8.0%",
+            "threshold": "\u2265 0%",
             "passed": true
           }
         ],
@@ -2279,9 +2279,9 @@ window.INVEST_DATA = {
             "passed": true
           },
           {
-            "name": "Free Cash Flow",
-            "value": "positive",
-            "threshold": "positive",
+            "name": "Free Cash Flow yield",
+            "value": "3.0%",
+            "threshold": "\u2265 0%",
             "passed": true
           }
         ],
@@ -2852,9 +2852,9 @@ window.INVEST_DATA = {
             "passed": false
           },
           {
-            "name": "Free Cash Flow",
-            "value": "positive",
-            "threshold": "positive",
+            "name": "Free Cash Flow yield",
+            "value": "3.0%",
+            "threshold": "\u2265 0%",
             "passed": true
           }
         ],
@@ -3425,9 +3425,9 @@ window.INVEST_DATA = {
             "passed": false
           },
           {
-            "name": "Free Cash Flow",
-            "value": "positive",
-            "threshold": "positive",
+            "name": "Free Cash Flow yield",
+            "value": "4.0%",
+            "threshold": "\u2265 0%",
             "passed": true
           }
         ],
@@ -3998,9 +3998,9 @@ window.INVEST_DATA = {
             "passed": false
           },
           {
-            "name": "Free Cash Flow",
-            "value": "positive",
-            "threshold": "positive",
+            "name": "Free Cash Flow yield",
+            "value": "9.0%",
+            "threshold": "\u2265 0%",
             "passed": true
           }
         ],
@@ -4571,9 +4571,9 @@ window.INVEST_DATA = {
             "passed": false
           },
           {
-            "name": "Free Cash Flow",
-            "value": "positive",
-            "threshold": "positive",
+            "name": "Free Cash Flow yield",
+            "value": "7.0%",
+            "threshold": "\u2265 0%",
             "passed": true
           }
         ],
@@ -5144,9 +5144,9 @@ window.INVEST_DATA = {
             "passed": false
           },
           {
-            "name": "Free Cash Flow",
-            "value": "positive",
-            "threshold": "positive",
+            "name": "Free Cash Flow yield",
+            "value": "4.0%",
+            "threshold": "\u2265 0%",
             "passed": true
           }
         ],
@@ -5372,15 +5372,6 @@ window.INVEST_DATA = {
       }
     ],
     "watch": [
-      {
-        "ticker": "NVDA",
-        "name": "NVIDIA Corp.",
-        "payback_years": 9.46,
-        "fcf_yield": 0.02,
-        "margin_of_safety": 0.5975,
-        "pbt_ok": true,
-        "fcf_ok": false
-      },
       {
         "ticker": "GOOGL",
         "name": "Alphabet Inc.",

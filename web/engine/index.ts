@@ -21,7 +21,13 @@ export * from "./signals.ts";
 export * from "./decision.ts";
 export * from "./screen.ts";
 
-import { decideValuation, stocksFromConfig } from "./decision.ts";
+import {
+  decideValuation,
+  decisionThresholds,
+  stocksFromConfig,
+  DEFAULT_THRESHOLDS,
+  type DecisionThresholds,
+} from "./decision.ts";
 import type { Config, Stock, ValuationDecision } from "./decision.ts";
 import { pyRound } from "./pyformat.ts";
 import { linregChannel, railChecks, timingSignals } from "./signals.ts";
@@ -49,8 +55,12 @@ export interface DecisionObject {
  * Assemble the full per-stock decision object (port of
  * core.decision.build_decision with an explicit price series).
  */
-export function buildDecision(stock: Stock, series: Series): DecisionObject {
-  const valuation = decideValuation(stock.valuation, stock.fcfPositive, stock.narrative);
+export function buildDecision(
+  stock: Stock, series: Series, thresholds: DecisionThresholds = DEFAULT_THRESHOLDS,
+): DecisionObject {
+  const valuation = decideValuation(
+    stock.valuation, stock.fcfYield, stock.narrative, thresholds,
+  );
   const timing = timingSignals(series.closes, series.highs, series.lows);
   return {
     ticker: stock.ticker,
@@ -72,10 +82,11 @@ export function buildDecisions(
   cfg: Config, seriesByTicker: Readonly<Record<string, Series>>,
 ): DecisionObject[] {
   const stocks = stocksFromConfig(cfg);
+  const thresholds = decisionThresholds(cfg);
   const decisions = stocks.map((s) => {
     const series = seriesByTicker[s.ticker];
     if (!series) throw new Error(`no price series for ${s.ticker}`);
-    return buildDecision(s, series);
+    return buildDecision(s, series, thresholds);
   });
   decisions.sort((a, b) =>
     b.valuation.conviction - a.valuation.conviction

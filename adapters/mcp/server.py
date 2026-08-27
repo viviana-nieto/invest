@@ -52,7 +52,8 @@ def _known(cfg: dict) -> list[str]:
 def screen_watchlist() -> dict:
     """Screen the whole watchlist: ranked BUY/WATCH/PASS verdicts with the
     three-criterion evidence checklist (Payback Time < 12y, Margin of Safety > 0,
-    positive FCF) and the timing verdict per name."""
+    FCF yield >= 0% — the payback / FCF-yield thresholds are config-tunable)
+    and the timing verdict per name."""
     cfg = _config()
     decisions = build_decisions(cfg)
     return {

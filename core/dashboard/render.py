@@ -360,7 +360,7 @@ def render_dashboard(decisions: list[dict], title: str = "Decision Dashboard",
     </main>
 
     <footer>
-      Two lenses of one decision loop: <b>Value</b> (Payback&nbsp;Time&nbsp;&lt;&nbsp;12y · Margin&nbsp;of&nbsp;Safety&nbsp;&gt;&nbsp;0 · positive&nbsp;FCF →
+      Two lenses of one decision loop: <b>Value</b> (Payback&nbsp;Time&nbsp;&lt;&nbsp;12y · Margin&nbsp;of&nbsp;Safety&nbsp;&gt;&nbsp;0 · FCF&nbsp;yield&nbsp;≥&nbsp;0% →
       BUY/WATCH/PASS) and <b>Timing</b> (LinReg&nbsp;channel · Stochastic&nbsp;14,5,3 · MACD&nbsp;8,17,9 · SMA&nbsp;50 →
       REACHING&nbsp;FLOOR/NEUTRAL/EXTENDED). Ranked by conviction. Sample data — not investment advice.
     </footer>

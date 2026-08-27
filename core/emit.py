@@ -38,9 +38,9 @@ import numpy as np
 
 from . import sample_prices as sp
 from . import signals as sig
-from .decision import _fcf_positive, decide_valuation
-from .screen import _defaults, load_config, _resolve_config
-from .valuation import Valuation
+from .decision import (DEFAULT_THRESHOLDS, DecisionThresholds, _number,
+                       decide_valuation, decision_thresholds)
+from .screen import _defaults, load_config, _resolve_config, valuation_from_row
 
 ROOT = Path(__file__).resolve().parent.parent
 SAMPLE_DIR = ROOT / "sample-data"
@@ -199,19 +199,14 @@ def _fundamentals(row: dict) -> dict:
     }
 
 
-def _verdict_block(row: dict, defaults: dict) -> dict:
-    val = Valuation(
-        ticker=row["ticker"],
-        price=float(row["price"]),
-        eps=float(row["eps"]),
-        growth_rate=float(row["growth_rate"]),
-        future_pe=row.get("future_pe", defaults["default_future_pe"]),
-        years=defaults["years"],
-        required_return=defaults["required_return"],
-        margin=defaults["margin"],
-    )
-    block = decide_valuation(val, _fcf_positive(row.get("fcf", "positive")),
-                             row.get("narrative", ""))
+def _verdict_block(row: dict, defaults: dict,
+                   thresholds: DecisionThresholds = DEFAULT_THRESHOLDS) -> dict:
+    # valuation_from_row caps the growth the valuation trusts; the fundamentals
+    # block above keeps reporting the row's true growth rate.
+    val = valuation_from_row(row, defaults)
+    fcf_yield = row["fcf_yield"] if _number(row.get("fcf_yield")) else 0.0
+    block = decide_valuation(val, fcf_yield, row.get("narrative", ""),
+                             thresholds)
     return {
         "verdict": block["verdict"],
         "conviction": block["conviction"],
@@ -224,9 +219,10 @@ def _verdict_block(row: dict, defaults: dict) -> dict:
     }
 
 
-def _stock_object(row: dict, defaults: dict) -> dict:
+def _stock_object(row: dict, defaults: dict,
+                  thresholds: DecisionThresholds = DEFAULT_THRESHOLDS) -> dict:
     obj = _fundamentals(row)
-    obj["verdict"] = _verdict_block(row, defaults)
+    obj["verdict"] = _verdict_block(row, defaults, thresholds)
     return obj
 
 
@@ -272,8 +268,9 @@ def _technicals_for(ticker: str, shape: str) -> dict:
 def emit_data(cfg: dict) -> list[dict]:
     """Watchlist per-stock objects (data.json contract)."""
     defaults = _defaults(cfg)
+    thresholds = decision_thresholds(cfg)
     rows = cfg.get("skill", {}).get("watchlist", [])
-    return [_stock_object(r, defaults) for r in rows]
+    return [_stock_object(r, defaults, thresholds) for r in rows]
 
 
 def emit_technicals(rows: list[dict]) -> dict:

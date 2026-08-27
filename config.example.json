@@ -1,16 +1,19 @@
 {
-  "_comment": "Copy to config.json and edit. config.json is gitignored. A numeric `growth_rate` on a row is a MANUAL OVERRIDE; omit it and the live path computes a historical operating-income CAGR instead (see README 'How growth is computed'). Fundamentals below are ILLUSTRATIVE SAMPLE VALUES so the engine runs offline without live data — they are not current and are not investment advice. `fcf`, `fcf_yield`, `shape`, and `narrative` power the decision + timing lenses of the dashboard. `fcf_yield` feeds the Screen tab's Cut B (FCF yield >= 5%). `narrative` is a CANNED sample standing in for the LLM 'agent voice' — the deterministic engine makes every call; the narrative only reads it back.",
+  "_comment": "Copy to config.json and edit. config.json is gitignored. A numeric `growth_rate` on a row is a MANUAL OVERRIDE; omit it and the live path computes a historical operating-income CAGR instead (see README 'How growth is computed'). Fundamentals below are ILLUSTRATIVE SAMPLE VALUES so the engine runs offline without live data — they are not current and are not investment advice. `fcf`, `fcf_yield`, `shape`, and `narrative` power the decision + timing lenses of the dashboard. `fcf_yield` feeds the Screen tab's Cut B (FCF yield >= 5%) and the watchlist verdict's third criterion (FCF yield >= `skill.fcf_yield_min`). `narrative` is a CANNED sample standing in for the LLM 'agent voice' — the deterministic engine makes every call; the narrative only reads it back.",
   "llm": {
     "provider": "mock",
     "_providers": ["anthropic", "openai", "ollama", "mock"],
     "model": null
   },
   "skill": {
-    "_note": "Global valuation assumptions + a neutral mega-cap watchlist.",
+    "_note": "Global valuation assumptions + a neutral mega-cap watchlist. Three tunable thresholds: `valuation_growth_cap` caps the growth rate the sticker/payback/margin-of-safety math trusts (a 60%/yr grower compounded 10y = 108x and mints an absurd sticker; the displayed growth stays the TRUE CAGR — only the valuation is capped; <= 0 or absent = uncapped). `payback_max_years` is the verdict's Payback Time ceiling. `fcf_yield_min` is the verdict's FCF-yield floor as a fraction (0 = just 'positive'; 0.05 = require a 5% yield).",
     "projection_years": 10,
     "required_return": 0.15,
     "margin_of_safety": 0.50,
     "default_future_pe": 15.0,
+    "valuation_growth_cap": 0.25,
+    "payback_max_years": 12,
+    "fcf_yield_min": 0.0,
     "watchlist": [
       { "ticker": "NVDA",  "name": "NVIDIA Corp.",           "sector": "Semiconductors",         "price": 120.0, "eps": 2.50,  "growth_rate": 0.30, "future_pe": 35.0, "fcf": "positive", "fcf_yield": 0.02,  "shape": "floor",    "narrative": "Agents flag accelerating datacenter demand; the discount to sticker reads as the market pricing a cyclical pause, not a broken thesis." },
       { "ticker": "NKE",   "name": "Nike Inc.",              "sector": "Apparel & Footwear",     "price": 70.0,  "eps": 3.40,  "growth_rate": 0.14, "future_pe": 27.0, "fcf": "positive", "fcf_yield": 0.055, "shape": "floor",    "narrative": "Agents read a brand in a demand air-pocket, but the beaten-down price finally opens a margin of safety while cash flow holds — a classic reaching-a-floor setup." },
